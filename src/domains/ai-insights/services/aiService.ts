@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI, Part } from "@google/generative-ai";
-import { InitializationData } from "@/infrastructure/db/db.types";
 import { logError } from "@/shared/services/logger";
 
 // Static initialization removed to support dynamic configuration
@@ -33,19 +32,21 @@ const getSystemInstruction = (permissions: { read: boolean; write: boolean; upda
   return {
     role: "system",
     parts: [{ text: `You are a helpful personal finance assistant integrated into a PWA. 
-    You have access to the user's financial data stored in a local database (IndexedDB).
+    You have access to a clean, summarized financial profile of the user's local database.
     
     Your capabilities:
-    1. **Analyze**: Answer questions about net worth, spending, assets, etc. based on the provided JSON context.
+    1. **Analyze**: Answer questions about net worth, spending, assets, etc. based on the provided summarized JSON context.
     
-    Database Structure (Tables):
-    - configs: App configurations
-    - accounts: Bank accounts, wallets
-    - income: Income sources
-    - cashFlow: Monthly cashflow items (expenses/income)
-    - assetsHoldings: Assets like stocks, internal/external funds
-    - liabilities: Loans
-    - insurances: Insurance policies (Life, Health, etc.)
+    The provided data context profile contains:
+    - holders: Family members / owners of the accounts and assets.
+    - accounts: Active bank accounts and wallets.
+    - holdings: Current asset holdings (investments like stocks, mutual funds, gold, etc.) mapped to classes/subclasses.
+    - liabilities: Active loans with interest rates, amounts, and durations.
+    - incomes: Active monthly income sources.
+    - cashFlows: Categorized monthly cashflow items (incomes, needs, wants, savings).
+    - goals: Target goals and requirements.
+    - upcomingExpenses: Outstanding upcoming bills and obligations.
+    - insurances: Active insurance policies.
     
     ${permissionText}
 
@@ -62,7 +63,7 @@ export interface ChatMessage {
 export const sendMessageToAI = async (
   history: ChatMessage[],
   newMessage: string,
-  dataContext: InitializationData,
+  dataContext: any,
   apiKey: string,
   modelName: string,
   permissions: { read: boolean; write: boolean; update: boolean; delete: boolean }

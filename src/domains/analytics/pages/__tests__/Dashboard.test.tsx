@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import Dashboard from '../Dashboard';
 
 
-// Mock the hook
-vi.mock('@/domains/analytics/hooks/useDashboardData', () => ({
-  useDashboardData: () => ({
+// Mock the hook from context
+vi.mock('@/domains/analytics/contexts/DashboardDataContext', () => ({
+  useSharedDashboardData: () => ({
     cardData: [
       { title: 'Net Worth', value: 5000000, bg: 'success', text: 'white' },
       { title: 'Assets', value: 6000000, bg: 'primary', text: 'white' }

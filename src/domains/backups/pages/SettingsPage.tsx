@@ -9,7 +9,8 @@ import {
   Button,
   Alert,
   Spinner,
-  Badge
+  Badge,
+  Modal
 } from "react-bootstrap";
 import { useBioLock } from "@/domains/auth/contexts/bioLockContext";
 import { useAuth } from "@/domains/auth/hooks/useAuth";
@@ -409,8 +410,44 @@ function DataManagementTab() {
 
 // --- Main Settings Page ---
 export default function SettingsPage() {
-  const { isEnabled, isSupported, register, disable } = useBioLock();
+  const { 
+    isEnabled, 
+    isSupported, 
+    register, 
+    disable, 
+    hasPinFallback, 
+    setPinFallback, 
+    removePinFallback 
+  } = useBioLock();
   const { theme, setTheme } = useTheme();
+
+  // Backup PIN states
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinError, setPinError] = useState("");
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.length < 4 || newPin.length > 8) {
+      setPinError("PIN must be between 4 and 8 digits.");
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinError("PINs do not match.");
+      return;
+    }
+
+    setPinError("");
+    const success = await setPinFallback(newPin);
+    if (success) {
+      setShowPinModal(false);
+      setNewPin("");
+      setConfirmPin("");
+    } else {
+      setPinError("Failed to save PIN. Please try again.");
+    }
+  };
 
   return (
     <Container fluid className="py-4 overflow-auto h-100">
@@ -480,17 +517,118 @@ export default function SettingsPage() {
                   onChange={async (e) => {
                     if (e.target.checked) {
                       const success = await register();
-                      if (!success) {
+                      if (success) {
+                        setNewPin("");
+                        setConfirmPin("");
+                        setPinError("");
+                        setShowPinModal(true);
+                      } else {
                         alert("Failed to register biometric credential.");
                       }
                     } else {
                       disable();
+                      removePinFallback();
                     }
                   }}
                 />
               </div>
+
+              {isEnabled && (
+                <div className="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 className="mb-1">Local Backup PIN</h5>
+                    <p className="text-muted mb-0 small">
+                      {hasPinFallback 
+                        ? "Backup PIN is active and configured."
+                        : "⚠️ No backup PIN configured yet. Set a PIN to prevent lockout."
+                      }
+                    </p>
+                  </div>
+                  <Button 
+                    variant={hasPinFallback ? "outline-warning" : "warning"}
+                    size="sm"
+                    className="rounded-pill px-3"
+                    onClick={() => {
+                      setNewPin("");
+                      setConfirmPin("");
+                      setPinError("");
+                      setShowPinModal(true);
+                    }}
+                  >
+                    {hasPinFallback ? "Change PIN" : "Configure PIN"}
+                  </Button>
+                </div>
+              )}
             </Card.Body>
           </Card>
+
+          {/* Backup PIN Setup Modal */}
+          <Modal show={showPinModal} backdrop="static" keyboard={false} centered>
+            <Form onSubmit={handlePinSubmit}>
+              <Modal.Header closeButton={hasPinFallback} onHide={() => setShowPinModal(false)} className="border-0 bg-dark text-light">
+                <Modal.Title className="fw-bold">🔒 Setup Fallback PIN</Modal.Title>
+              </Modal.Header>
+              <Modal.Body className="bg-dark text-light border-0">
+                <p className="text-muted small mb-4">
+                  Define a local 4 to 8 digit fallback PIN code. This makes sure you never get locked out of your financial data if your device's biometric authentication fails or is temporarily unavailable.
+                </p>
+                {pinError && (
+                  <Alert variant="danger" className="py-2 px-3 mb-3 small">
+                    ⚠️ {pinError}
+                  </Alert>
+                )}
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-semibold text-muted">Backup PIN</Form.Label>
+                  <Form.Control
+                    type="password"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    placeholder="Enter 4 to 8 digit PIN"
+                    className="text-center fs-4 bg-secondary bg-opacity-25 border-secondary text-light py-2"
+                    value={newPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      if (val.length <= 8) setNewPin(val);
+                    }}
+                    required
+                    autoFocus
+                  />
+                </Form.Group>
+                <Form.Group className="mb-4">
+                  <Form.Label className="small fw-semibold text-muted">Confirm Backup PIN</Form.Label>
+                  <Form.Control
+                    type="password"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    placeholder="Confirm your PIN"
+                    className="text-center fs-4 bg-secondary bg-opacity-25 border-secondary text-light py-2"
+                    value={confirmPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      if (val.length <= 8) setConfirmPin(val);
+                    }}
+                    required
+                  />
+                </Form.Group>
+              </Modal.Body>
+              <Modal.Footer className="border-0 bg-dark justify-content-end">
+                {hasPinFallback && (
+                  <Button variant="outline-secondary" size="sm" onClick={() => setShowPinModal(false)} className="rounded-pill text-light border-secondary px-3">
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  type="submit"
+                  size="sm"
+                  className="rounded-pill px-4"
+                  disabled={newPin.length < 4 || newPin !== confirmPin}
+                >
+                  Save PIN
+                </Button>
+              </Modal.Footer>
+            </Form>
+          </Modal>
 
         </Tab>
 

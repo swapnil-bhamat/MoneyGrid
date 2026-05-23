@@ -5,7 +5,7 @@ import mermaid from "mermaid";
 import { Alert, Button, Container, Form } from "react-bootstrap";
 import { useLiveQuery } from "dexie-react-hooks";
 import FinancialFreedomKPI from "@/domains/analytics/components/FinancialFreedomKPI";
-import { useDashboardData } from "@/domains/analytics/hooks/useDashboardData";
+import { useSharedDashboardData } from "@/domains/analytics/contexts/DashboardDataContext";
 import { CONFIG_KEYS, saveAppConfig } from "@/shared/services/configService";
 import { db } from "@/infrastructure/db/db";
 
@@ -57,7 +57,7 @@ function MermaidDiagram({
 }
 
 export default function FirePage() {
-  const { financialFreedomMetrics } = useDashboardData();
+  const { financialFreedomMetrics } = useSharedDashboardData();
   const firePlanConfig = useLiveQuery(
     async () =>
       (await db.configs

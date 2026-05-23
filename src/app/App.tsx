@@ -21,6 +21,7 @@ import AboutPage from "@/shared/pages/AboutPage";
 import FinanceRules from "@/shared/pages/FinanceRules";
 import AssetAllocationProjectionPage from "@/domains/analytics/pages/AssetAllocationProjectionPage";
 import { BioLockProvider } from "@/domains/auth/contexts/bioLockContext";
+import { DashboardDataProvider } from "@/domains/analytics/contexts/DashboardDataContext";
 import { ThemeProvider } from "@/shared/services/themeContext";
 import BioLockScreen from "@/domains/auth/components/BioLockScreen";
 import LiabilitiesPage from "@/domains/accounts/pages/LiabilitiesPage";
@@ -63,10 +64,12 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BioLockProvider>
-          <ThemeProvider>
-            <BioLockScreen />
-            <RouterProvider router={router} />
-          </ThemeProvider>
+          <DashboardDataProvider>
+            <ThemeProvider>
+              <BioLockScreen />
+              <RouterProvider router={router} />
+            </ThemeProvider>
+          </DashboardDataProvider>
         </BioLockProvider>
       </AuthProvider>
     </ErrorBoundary>

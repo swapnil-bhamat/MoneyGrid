@@ -86,3 +86,22 @@
 [data-bs-theme="dark"] .table-hover tbody tr[class*="dynamic-bg-"]:hover {
   filter: brightness(1.3) !important;
 }
+
+// Reusable Theme-Aware Glassmorphism Utility
+:root {
+  --glass-card-bg: rgba(255, 255, 255, 0.45);
+  --glass-card-border: rgba(255, 255, 255, 0.25);
+}
+
+[data-bs-theme="dark"] {
+  --glass-card-bg: rgba(15, 23, 42, 0.45);
+  --glass-card-border: rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: var(--glass-card-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--glass-card-border) !important;
+}
+

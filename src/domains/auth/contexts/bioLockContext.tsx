@@ -12,10 +12,14 @@ interface BioLockContextType {
   isLocked: boolean;
   isEnabled: boolean;
   isSupported: boolean;
+  hasPinFallback: boolean;
   register: () => Promise<boolean>;
   authenticate: () => Promise<boolean>;
   disable: () => void;
   lock: () => void;
+  setPinFallback: (pin: string) => Promise<boolean>;
+  authenticateWithPin: (pin: string) => Promise<boolean>;
+  removePinFallback: () => void;
 }
 
 const BioLockContext = createContext<BioLockContextType | null>(null);
@@ -30,6 +34,7 @@ export const useBioLock = () => {
 
 const STORAGE_KEY_ENABLED = "bio_auth_enabled";
 const STORAGE_KEY_CREDENTIAL_ID = "bio_auth_credential_id";
+const STORAGE_KEY_PIN_HASH = "bio_auth_pin_hash";
 
 export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -37,6 +42,7 @@ export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
   const [isLocked, setIsLocked] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  const [hasPinFallback, setHasPinFallback] = useState(false);
 
   useEffect(() => {
     // Check if WebAuthn is supported
@@ -54,11 +60,13 @@ export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
     // Check if previously enabled
     const enabled = localStorage.getItem(STORAGE_KEY_ENABLED) === "true";
     const credentialId = localStorage.getItem(STORAGE_KEY_CREDENTIAL_ID);
+    const pinHash = localStorage.getItem(STORAGE_KEY_PIN_HASH);
 
     if (enabled && credentialId) {
       setIsEnabled(true);
       setIsLocked(true); // Lock by default if enabled
     }
+    setHasPinFallback(!!pinHash);
   }, []);
 
   const register = useCallback(async (): Promise<boolean> => {
@@ -172,8 +180,10 @@ export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
   const disable = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY_ENABLED);
     localStorage.removeItem(STORAGE_KEY_CREDENTIAL_ID);
+    localStorage.removeItem(STORAGE_KEY_PIN_HASH);
     setIsEnabled(false);
     setIsLocked(false);
+    setHasPinFallback(false);
   }, []);
 
   const lock = useCallback(() => {
@@ -182,19 +192,64 @@ export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [isEnabled]);
 
+  const setPinFallback = useCallback(async (pin: string): Promise<boolean> => {
+    try {
+      const hash = await hashPin(pin);
+      localStorage.setItem(STORAGE_KEY_PIN_HASH, hash);
+      setHasPinFallback(true);
+      return true;
+    } catch (err) {
+      logError("Failed to set PIN fallback", { error: err });
+      return false;
+    }
+  }, []);
+
+  const authenticateWithPin = useCallback(async (pin: string): Promise<boolean> => {
+    try {
+      const storedHash = localStorage.getItem(STORAGE_KEY_PIN_HASH);
+      if (!storedHash) return false;
+      const inputHash = await hashPin(pin);
+      if (storedHash === inputHash) {
+        setIsLocked(false);
+        return true;
+      }
+    } catch (err) {
+      logError("PIN validation failed", { error: err });
+    }
+    return false;
+  }, []);
+
+  const removePinFallback = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY_PIN_HASH);
+    setHasPinFallback(false);
+  }, []);
+
   return (
     <BioLockContext.Provider
       value={{
         isLocked,
         isEnabled,
         isSupported,
+        hasPinFallback,
         register,
         authenticate,
         disable,
         lock,
+        setPinFallback,
+        authenticateWithPin,
+        removePinFallback,
       }}
     >
       {children}
     </BioLockContext.Provider>
   );
 };
+
+// SHA-256 secure local hash helper utilizing standard Web Crypto API
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}

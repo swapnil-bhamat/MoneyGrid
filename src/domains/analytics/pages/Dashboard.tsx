@@ -1,5 +1,5 @@
 
-import { useDashboardData } from "@/domains/analytics/hooks/useDashboardData";
+import { useSharedDashboardData } from "@/domains/analytics/contexts/DashboardDataContext";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import {
   PieChart,
@@ -33,7 +33,7 @@ export default function Dashboard() {
     assetAllocationByBucket,
     goalProgress,
     projectedAssetGrowth,
-  } = useDashboardData();
+  } = useSharedDashboardData();
 
   const isMobile = useMobile();
 

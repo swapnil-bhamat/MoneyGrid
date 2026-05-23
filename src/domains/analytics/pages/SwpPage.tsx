@@ -17,7 +17,7 @@ import {
 } from "react-icons/bs";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
-import { useDashboardData } from "@/domains/analytics/hooks/useDashboardData";
+import { useSharedDashboardData } from "@/domains/analytics/contexts/DashboardDataContext";
 import { toLocalCurrency } from "@/shared/utils/numberUtils";
 
 const SwpPage: React.FC = () => {
@@ -41,7 +41,7 @@ const SwpPage: React.FC = () => {
   const inflationRate = Number(userConfig["inflation-rate"]) || 6.5;
   const lifeExpectancy = Number(userConfig["life-expectancy"] || 100);
 
-  const { withPercentage, assetAllocationByBucket } = useDashboardData();
+  const { withPercentage, assetAllocationByBucket } = useSharedDashboardData();
   const needPerMonth =
     withPercentage.filter((a) => a?.id === "Need")[0]?.value ?? 0;
   const shortTermBucketValue =

@@ -7,7 +7,120 @@ import { sendMessageToAI, ChatMessage, fetchAvailableModels } from '@/domains/ai
 import { saveAppConfig, getAppConfig, CONFIG_KEYS } from '@/shared/services/configService';
 import { exportDataFromIndexedDB } from '@/domains/backups/services/driveSync';
 
+// Helper to build a highly optimized and secure context summary for the AI Chat
+const buildAIChatProfile = (data: any) => {
+  // Map holders for easy relationship lookups
+  const holdersMap = (data.holders || []).reduce((acc: any, h: any) => {
+    acc[h.id] = h.name;
+    return acc;
+  }, {});
 
+  // Summarize accounts (exposing bank, type, and associated owners)
+  const accounts = (data.accounts || []).map((acc: any) => ({
+    bank: acc.bank,
+    type: acc.accountType,
+    holders: (acc.holders_id || []).map((id: number) => holdersMap[id] || id),
+  }));
+
+  // Map asset categories
+  const assetClassesMap = (data.assetClasses || []).reduce((acc: any, ac: any) => {
+    acc[ac.id] = ac.name;
+    return acc;
+  }, {});
+  const assetSubClassesMap = (data.assetSubClasses || []).reduce((acc: any, asc: any) => {
+    acc[asc.id] = { name: asc.name, class: assetClassesMap[asc.assetClasses_id] };
+    return acc;
+  }, {});
+
+  // Summarize holdings
+  const holdings = (data.assetsHoldings || []).map((h: any) => {
+    const subClass = assetSubClassesMap[h.assetSubClasses_id] || {};
+    return {
+      asset: h.assetName,
+      class: subClass.class || "Unknown",
+      subClass: subClass.name || "Unknown",
+      allocation: h.existingAllocation,
+      holder: holdersMap[h.holders_id] || "Unknown",
+    };
+  });
+
+  // Summarize liabilities (loans)
+  const loanTypesMap = (data.loanType || []).reduce((acc: any, lt: any) => {
+    acc[lt.id] = { name: lt.name, rate: lt.interestRate };
+    return acc;
+  }, {});
+  const liabilities = (data.liabilities || []).map((l: any) => {
+    const type = loanTypesMap[l.loanType_id] || {};
+    return {
+      loanName: l.loanName,
+      type: type.name || "Unknown",
+      interestRate: type.rate ? `${type.rate}%` : "Unknown",
+      amount: l.loanAmount,
+      months: l.totalMonths,
+      startDate: l.loanStartDate,
+    };
+  });
+
+  // Summarize incomes
+  const incomes = (data.income || []).map((inc: any) => ({
+    source: inc.source,
+    monthly: inc.monthly,
+    holder: holdersMap[inc.holders_id] || "Unknown",
+  }));
+
+  // Summarize monthly cash flows (expenses/savings categories)
+  const purposesMap = (data.assetPurpose || []).reduce((acc: any, p: any) => {
+    acc[p.id] = { name: p.name, type: p.type };
+    return acc;
+  }, {});
+  const cashFlows = (data.cashFlow || []).map((cf: any) => {
+    const purpose = purposesMap[cf.assetPurpose_id] || {};
+    return {
+      item: cf.description,
+      monthlyAmount: cf.monthly,
+      category: purpose.name || "Unknown",
+      type: purpose.type || "Unknown",
+      holder: holdersMap[cf.holders_id] || "Unknown",
+    };
+  });
+
+  // Summarize active target goals
+  const goals = (data.goals || []).map((g: any) => ({
+    name: g.name,
+    targetAmount: g.amountRequiredToday,
+    targetDate: g.targetDate,
+  }));
+
+  // Summarize non-completed upcoming expenses
+  const upcomingExpenses = (data.upcomingExpenses || [])
+    .filter((e: any) => !e.completed)
+    .map((e: any) => ({
+      description: e.description,
+      amount: e.amount,
+      dueDate: e.dueDate,
+    }));
+
+  // Summarize active insurances
+  const insurances = (data.insurances || []).map((ins: any) => ({
+    policy: ins.policyName,
+    sumAssured: ins.sumAssured,
+    premium: ins.premiumAmount,
+    dueDate: ins.dueDate,
+  }));
+
+  // Return summarized and secure context profile (configs explicitly omitted)
+  return {
+    holders: Object.values(holdersMap),
+    accounts,
+    holdings,
+    liabilities,
+    incomes,
+    cashFlows,
+    goals,
+    upcomingExpenses,
+    insurances,
+  };
+};
 
 interface ChatWidgetProps {}
 
@@ -92,11 +205,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = () => {
     setIsLoading(true);
 
     try {
-      // 1. Get fresh data
+      // 1. Get fresh data & construct a sanitized/optimized financial profile for the AI
       const currentData = await exportDataFromIndexedDB();
+      const optimizedProfile = buildAIChatProfile(currentData);
       
       // 2. Send to AI
-      const response = await sendMessageToAI(history, userMessage, currentData, apiKey, modelName, permissions);
+      const response = await sendMessageToAI(history, userMessage, optimizedProfile, apiKey, modelName, permissions);
       
       let aiResponseText = response.text;
       const aiResponseImages = response.images;
