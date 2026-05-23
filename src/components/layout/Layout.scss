@@ -11,7 +11,6 @@
   flex-shrink: 0;
   background-color: var(--layout-sidebar-bg) !important;
   border-right: 1px solid var(--layout-border-color);
-  color: var(--layout-text-primary);
 }
 
 @media (max-width: 767.98px) {
@@ -27,7 +26,6 @@
   padding: 0; // Remove default padding, will add to header and content area
   width: 100%;
   background-color: var(--layout-content-bg) !important;
-  color: var(--layout-text-primary);
 }
 
 .layout-header {
@@ -66,7 +64,6 @@
 
 .layout-sidebar {
   background-color: var(--layout-sidebar-bg) !important;
-  color: var(--layout-text-primary);
 
   &.offcanvas {
     border-right: 1px solid var(--layout-border-color);
@@ -78,7 +75,6 @@
 }
 
 .nav-link {
-  color: var(--layout-text-primary);
   &:hover {
     background-color: rgba(var(--bs-primary-rgb), 0.05);
   }

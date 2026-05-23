@@ -89,7 +89,7 @@ export default function GoldCalculator() {
             </Col>
 
             <Col md={12}>
-                <div className="p-3 bg-light-subtle rounded mt-2">
+                <div className="p-3 bg-body-secondary rounded mt-2">
                     <div className="text-muted small mb-1">Estimated Value</div>
                     <div className="fs-3 fw-bold text-success">
                         {toLocalCurrency(totalValue)}

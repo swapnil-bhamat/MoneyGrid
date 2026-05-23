@@ -174,7 +174,7 @@ export default function GoldRateCard() {
             <h6 className="text-secondary border-bottom pb-2">Gold (10g)</h6>
           <Row className="g-3">
             <Col xs={6} className="text-center">
-              <div className="p-2 border rounded bg-light-subtle">
+              <div className="p-2 border rounded bg-body-secondary">
                 <div className="text-muted small">24K (Pure)</div>
                 <div className="fs-5 fw-bold text-success">
                     {toLocalCurrency(data.price_gram_24k * 10)}
@@ -182,7 +182,7 @@ export default function GoldRateCard() {
               </div>
             </Col>
             <Col xs={6} className="text-center">
-              <div className="p-2 border rounded bg-light-subtle">
+              <div className="p-2 border rounded bg-body-secondary">
                 <div className="text-muted small">22K (Standard)</div>
                 <div className="fs-5 fw-bold text-success">
                     {toLocalCurrency(data.price_gram_22k * 10)}
@@ -190,7 +190,7 @@ export default function GoldRateCard() {
               </div>
             </Col>
             <Col xs={6} className="text-center">
-              <div className="p-2 border rounded bg-light-subtle">
+              <div className="p-2 border rounded bg-body-secondary">
                 <div className="text-muted small">21K</div>
                 <div className="fs-6 fw-semibold text-secondary">
                     {toLocalCurrency(data.price_gram_21k * 10)}
@@ -198,7 +198,7 @@ export default function GoldRateCard() {
               </div>
             </Col>
             <Col xs={6} className="text-center">
-              <div className="p-2 border rounded bg-light-subtle">
+              <div className="p-2 border rounded bg-body-secondary">
                 <div className="text-muted small">18K</div>
                 <div className="fs-6 fw-semibold text-secondary">
                     {toLocalCurrency(data.price_gram_18k * 10)}
@@ -215,7 +215,7 @@ export default function GoldRateCard() {
             <h6 className="text-secondary border-bottom pb-2 mt-4">Silver (1kg)</h6>
             <Row className="g-3">
              <Col xs={12} className="text-center">
-              <div className="p-2 border rounded bg-light-subtle d-flex justify-content-between align-items-center px-4">
+              <div className="p-2 border rounded bg-body-secondary d-flex justify-content-between align-items-center px-4">
                 <div className="text-muted small">Silver (24K)</div>
                 <div className="fs-5 fw-bold">
                     {toLocalCurrency(silverData.price_gram_24k * 1000)}

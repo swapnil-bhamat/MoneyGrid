@@ -16,10 +16,10 @@ import { useBioLock } from "@/contexts/bioLockContext";
 import { useAuth } from "@/hooks/useAuth";
 import QueryBuilderPage from "@/pages/backups/QueryBuilderPage";
 import DebugConsole from "@/pages/backups/DebugConsole";
-import { 
-  BsShieldLock, 
-  BsDatabase, 
-  BsFiletypeSql, 
+import {
+  BsShieldLock,
+  BsDatabase,
+  BsFiletypeSql,
   BsPeople,
   BsBank,
   BsLayersHalf,
@@ -29,11 +29,10 @@ import {
   BsGraphUp,
   BsFileEarmarkText,
   BsSliders,
-  BsDisplay,
   BsShieldCheck
 } from "react-icons/bs";
 import { VscDebugLineByLine } from "react-icons/vsc";
-import { FaCloud, FaHistory, FaDownload, FaUpload, FaTrash, FaExclamationTriangle, FaTrashRestore, FaSun, FaMoon } from "react-icons/fa";
+import { FaCloud, FaHistory, FaDownload, FaUpload, FaTrash, FaExclamationTriangle, FaTrashRestore } from "react-icons/fa";
 
 import { historyService, HistoryGroup } from "@/services/historyService";
 import { createBackup, listBackups, restoreBackup, deleteFile, DriveFile } from "@/services/googleDrive";
@@ -42,7 +41,7 @@ import { exportDataFromIndexedDB } from "@/services/driveSync";
 import { logError } from "@/services/logger";
 import { DesktopTableView } from "@/components/common/DesktopTableView";
 import { MobileCardView } from "@/components/common/MobileCardView";
-import { useTheme, Theme } from "@/contexts/themeContext";
+import { useTheme } from "@/contexts/themeContext";
 import { Column } from "@/types/ui";
 
 // Configuration Pages Imports
@@ -95,7 +94,7 @@ const historyColumns: Column<HistoryItem>[] = [
 function DataManagementTab() {
   const [key, setKey] = useState("cloud");
   const { user, handleSignIn } = useAuth();
-  
+
   // Cloud State
   const [backups, setBackups] = useState<DriveFile[]>([]);
   const [loadingCloud, setLoadingCloud] = useState(false);
@@ -143,27 +142,27 @@ function DataManagementTab() {
 
       // Check against latest backup if exists
       if (backups.length > 0) {
-          try {
-              const latest = backups[0];
-              // We must fetch the content to compare. This might be heavy but ensures accuracy.
-              const lastData = await restoreBackup(latest.id);
-              
-              if (JSON.stringify(data) === JSON.stringify(lastData)) {
-                  setCloudMsg({ type: "info", text: "No changes detected. Backup skipped." });
-                  setLoadingCloud(false);
-                  return;
-              }
-          } catch (e) {
-              // specific error for comparison fail shouldn't block new backup
-              console.warn("Could not compare with latest backup, proceeding...", e);
+        try {
+          const latest = backups[0];
+          // We must fetch the content to compare. This might be heavy but ensures accuracy.
+          const lastData = await restoreBackup(latest.id);
+
+          if (JSON.stringify(data) === JSON.stringify(lastData)) {
+            setCloudMsg({ type: "info", text: "No changes detected. Backup skipped." });
+            setLoadingCloud(false);
+            return;
           }
+        } catch (e) {
+          // specific error for comparison fail shouldn't block new backup
+          console.warn("Could not compare with latest backup, proceeding...", e);
+        }
       }
 
       await createBackup(data);
       await fetchBackups();
       setCloudMsg({ type: "success", text: "Backup created successfully!" });
     } catch (error) {
-      logError("Backup failed", {error});
+      logError("Backup failed", { error });
       setCloudMsg({ type: "danger", text: "Failed to create backup." });
     } finally {
       if (loadingCloud) setLoadingCloud(false); // Safety check if returned early
@@ -176,12 +175,12 @@ function DataManagementTab() {
     setRestoring(true);
     try {
       const data = await restoreBackup(file.id);
-      
+
       // Version Check
       if (!data.version || data.version < CURRENT_DB_VERSION) {
-         if (!data.version) {
-             throw new Error("Invalid backup file: Missing version.");
-         }
+        if (!data.version) {
+          throw new Error("Invalid backup file: Missing version.");
+        }
       }
 
       await initializeDatabase(data);
@@ -189,7 +188,7 @@ function DataManagementTab() {
       setTimeout(() => window.location.reload(), 1500);
 
     } catch (error) {
-      logError("Restore failed", {error});
+      logError("Restore failed", { error });
       setCloudMsg({ type: "danger", text: `Restore failed: ${(error as Error).message}` });
       setRestoring(false);
     }
@@ -200,7 +199,7 @@ function DataManagementTab() {
     try {
       // Re-using restoreBackup to fetch the JSON content
       const data = await restoreBackup(file.id);
-      
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -211,8 +210,8 @@ function DataManagementTab() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-       logError("Download failed", {error});
-       setCloudMsg({ type: "danger", text: "Failed to download backup." });
+      logError("Download failed", { error });
+      setCloudMsg({ type: "danger", text: "Failed to download backup." });
     } finally {
       setDownloading(null);
     }
@@ -223,7 +222,7 @@ function DataManagementTab() {
     setLoadingCloud(true);
     try {
       await deleteFile(fileId);
-      await fetchBackups(); 
+      await fetchBackups();
     } catch (error) {
       setCloudMsg({ type: "danger", text: "Failed to delete backup." });
     } finally {
@@ -233,8 +232,8 @@ function DataManagementTab() {
 
   const handleClearHistory = () => {
     if (confirm("Clear all session history? This cannot be undone.")) {
-        historyService.clear();
-        setUndoStack([]); // Force update
+      historyService.clear();
+      setUndoStack([]); // Force update
     }
   };
 
@@ -242,184 +241,184 @@ function DataManagementTab() {
 
   return (
     <Tabs
-        id="backup-tabs"
-        activeKey={key}
-        onSelect={(k) => setKey(k || "cloud")}
-        className="mb-3"
-      >
-        <Tab eventKey="cloud" title={<span><FaCloud className="me-2"/>Cloud Backups</span>}>
-           <div className="p-2">
-               {!user ? (
-                   <Alert variant="warning">
-                       <FaExclamationTriangle className="me-2"/>
-                       Please <Button variant="link" className="p-0 align-baseline" onClick={handleSignIn}>sign in</Button> to manage Cloud Backups.
-                   </Alert>
-               ) : (
-                   <>
-                       <div className="d-flex justify-content-between align-items-center mb-3">
-                           <h5>Google Drive Backups</h5>
-                           <Button variant="primary" onClick={handleCreateBackup} disabled={loadingCloud}>
-                               {loadingCloud ? <Spinner size="sm" animation="border"/> : <FaUpload className="me-2"/>}
-                              New
-                           </Button>
-                       </div>
+      id="backup-tabs"
+      activeKey={key}
+      onSelect={(k) => setKey(k || "cloud")}
+      className="mb-3"
+    >
+      <Tab eventKey="cloud" title={<span><FaCloud className="me-2" />Cloud Backups</span>}>
+        <div className="p-2">
+          {!user ? (
+            <Alert variant="warning">
+              <FaExclamationTriangle className="me-2" />
+              Please <Button variant="link" className="p-0 align-baseline" onClick={handleSignIn}>sign in</Button> to manage Cloud Backups.
+            </Alert>
+          ) : (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5>Google Drive Backups</h5>
+                <Button variant="primary" onClick={handleCreateBackup} disabled={loadingCloud}>
+                  {loadingCloud ? <Spinner size="sm" animation="border" /> : <FaUpload className="me-2" />}
+                  New
+                </Button>
+              </div>
 
-                       {cloudMsg && <Alert variant={cloudMsg.type}>{cloudMsg.text}</Alert>}
+              {cloudMsg && <Alert variant={cloudMsg.type}>{cloudMsg.text}</Alert>}
 
-                       {backups.length === 0 && !loadingCloud ? (
-                           <p className="text-muted text-center py-4">No backups found.</p>
-                       ) : (
-                           <>
-                               <DesktopTableView
-                                   data={backups}
-                                   columns={backupColumns}
-                                   renderActions={(file) => (
-                                       <>
-                                           <Button 
-                                               variant="outline-primary" 
-                                               size="sm"
-                                               className="me-2"
-                                               onClick={() => handleDownload(file)}
-                                               disabled={downloading === file.id}
-                                               title="Download Backup"
-                                           >
-                                               {downloading === file.id ? <Spinner size="sm" animation="border"/> : <FaDownload/>}
-                                           </Button>
-                                           <Button 
-                                               variant="outline-success" 
-                                               size="sm" 
-                                               className="me-2"
-                                               onClick={() => handleRestore(file)}
-                                               disabled={restoring}
-                                               title="Restore Backup"
-                                           >
-                                              {restoring ? <Spinner size="sm" animation="border" /> : <FaTrashRestore />}
-                                           </Button>
-                                           <Button 
-                                               variant="outline-danger" 
-                                               size="sm"
-                                               onClick={() => handleDelete(file.id)}
-                                               title="Delete Backup"
-                                           >
-                                               <FaTrash/>
-                                           </Button>
-                                       </>
-                                   )}
-                               />
-                               <MobileCardView
-                                   data={backups}
-                                   columns={backupColumns}
-                                   renderActions={(file) => (
-                                       <>
-                                           <Button 
-                                               variant="outline-primary" 
-                                               size="sm"
-                                               className="p-1"
-                                               style={{ width: "32px", height: "32px" }}
-                                               onClick={() => handleDownload(file)}
-                                               disabled={downloading === file.id}
-                                               title="Download Backup"
-                                           >
-                                               {downloading === file.id ? <Spinner size="sm" animation="border"/> : <FaDownload/>}
-                                           </Button>
-                                           <Button 
-                                               variant="outline-success" 
-                                               size="sm" 
-                                               className="p-1"
-                                               style={{ width: "32px", height: "32px" }}
-                                               onClick={() => handleRestore(file)}
-                                               disabled={restoring}
-                                               title="Restore Backup"
-                                           >
-                                               {restoring ? <Spinner size="sm" animation="border" /> : <FaTrashRestore />}
-                                           </Button>
-                                           <Button 
-                                               variant="outline-danger" 
-                                               size="sm"
-                                               className="p-1"
-                                               style={{ width: "32px", height: "32px" }}
-                                               onClick={() => handleDelete(file.id)}
-                                               title="Delete Backup"
-                                           >
-                                               <FaTrash/>
-                                           </Button>
-                                       </>
-                                   )}
-                               />
-                           </>
-                       )}
-                   </>
-               )}
-           </div>
-        </Tab>
-        
-        <Tab eventKey="history" title={<span><FaHistory className="me-2"/>Session History</span>}>
-            <div className="p-2">
-                <div className="d-flex justify-content-between mb-3 align-items-center">
-                     <div>
-                        <h5>Recent Actions (Undo Stack)</h5>
-                        <small className="text-muted">History is local to this session.</small>
-                     </div>
-                     <Button variant="outline-danger" size="sm" onClick={handleClearHistory} disabled={undoStack.length === 0}>
-                        <FaTrash/> Clear
-                     </Button>
-                </div>
-                {undoStack.length === 0 ? (
-                    <p className="text-muted">No history available.</p>
-                ) : (
-                    <div className="p-0 border rounded">
-                        <DesktopTableView
-                            data={undoStack.map((group, i) => {
-                                const firstOp = group[0];
-                                let action = "Unknown";
-                                if (firstOp.type === "delete") action = "Created"; 
-                                if (firstOp.type === "add") action = "Deleted";
-                                if (firstOp.type === "update") action = "Updated";
-                                return {
-                                    id: `hist-${i}`,
-                                    action,
-                                    table: firstOp.table,
-                                    details: group.length > 1 ? `${group.length} records` : `ID: ${firstOp.key}`
-                                };
-                            })}
-                            columns={historyColumns}
-                        />
-                         <MobileCardView
-                            data={undoStack.map((group, i) => {
-                                const firstOp = group[0];
-                                let action = "Unknown";
-                                if (firstOp.type === "delete") action = "Created"; 
-                                if (firstOp.type === "add") action = "Deleted";
-                                if (firstOp.type === "update") action = "Updated";
-                                return {
-                                    id: `hist-${i}`,
-                                    action,
-                                    table: firstOp.table,
-                                    details: group.length > 1 ? `${group.length} records` : `ID: ${firstOp.key}`
-                                };
-                            })}
-                            columns={historyColumns}
-                        />
-                    </div>
-                )}
+              {backups.length === 0 && !loadingCloud ? (
+                <p className="text-muted text-center py-4">No backups found.</p>
+              ) : (
+                <>
+                  <DesktopTableView
+                    data={backups}
+                    columns={backupColumns}
+                    renderActions={(file) => (
+                      <>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleDownload(file)}
+                          disabled={downloading === file.id}
+                          title="Download Backup"
+                        >
+                          {downloading === file.id ? <Spinner size="sm" animation="border" /> : <FaDownload />}
+                        </Button>
+                        <Button
+                          variant="outline-success"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleRestore(file)}
+                          disabled={restoring}
+                          title="Restore Backup"
+                        >
+                          {restoring ? <Spinner size="sm" animation="border" /> : <FaTrashRestore />}
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(file.id)}
+                          title="Delete Backup"
+                        >
+                          <FaTrash />
+                        </Button>
+                      </>
+                    )}
+                  />
+                  <MobileCardView
+                    data={backups}
+                    columns={backupColumns}
+                    renderActions={(file) => (
+                      <>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="p-1"
+                          style={{ width: "32px", height: "32px" }}
+                          onClick={() => handleDownload(file)}
+                          disabled={downloading === file.id}
+                          title="Download Backup"
+                        >
+                          {downloading === file.id ? <Spinner size="sm" animation="border" /> : <FaDownload />}
+                        </Button>
+                        <Button
+                          variant="outline-success"
+                          size="sm"
+                          className="p-1"
+                          style={{ width: "32px", height: "32px" }}
+                          onClick={() => handleRestore(file)}
+                          disabled={restoring}
+                          title="Restore Backup"
+                        >
+                          {restoring ? <Spinner size="sm" animation="border" /> : <FaTrashRestore />}
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="p-1"
+                          style={{ width: "32px", height: "32px" }}
+                          onClick={() => handleDelete(file.id)}
+                          title="Delete Backup"
+                        >
+                          <FaTrash />
+                        </Button>
+                      </>
+                    )}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </Tab>
+
+      <Tab eventKey="history" title={<span><FaHistory className="me-2" />Session History</span>}>
+        <div className="p-2">
+          <div className="d-flex justify-content-between mb-3 align-items-center">
+            <div>
+              <h5>Recent Actions (Undo Stack)</h5>
+              <small className="text-muted">History is local to this session.</small>
             </div>
-        </Tab>
-      </Tabs>
+            <Button variant="outline-danger" size="sm" onClick={handleClearHistory} disabled={undoStack.length === 0}>
+              <FaTrash /> Clear
+            </Button>
+          </div>
+          {undoStack.length === 0 ? (
+            <p className="text-muted">No history available.</p>
+          ) : (
+            <div className="p-0 border rounded">
+              <DesktopTableView
+                data={undoStack.map((group, i) => {
+                  const firstOp = group[0];
+                  let action = "Unknown";
+                  if (firstOp.type === "delete") action = "Created";
+                  if (firstOp.type === "add") action = "Deleted";
+                  if (firstOp.type === "update") action = "Updated";
+                  return {
+                    id: `hist-${i}`,
+                    action,
+                    table: firstOp.table,
+                    details: group.length > 1 ? `${group.length} records` : `ID: ${firstOp.key}`
+                  };
+                })}
+                columns={historyColumns}
+              />
+              <MobileCardView
+                data={undoStack.map((group, i) => {
+                  const firstOp = group[0];
+                  let action = "Unknown";
+                  if (firstOp.type === "delete") action = "Created";
+                  if (firstOp.type === "add") action = "Deleted";
+                  if (firstOp.type === "update") action = "Updated";
+                  return {
+                    id: `hist-${i}`,
+                    action,
+                    table: firstOp.table,
+                    details: group.length > 1 ? `${group.length} records` : `ID: ${firstOp.key}`
+                  };
+                })}
+                columns={historyColumns}
+              />
+            </div>
+          )}
+        </div>
+      </Tab>
+    </Tabs>
   );
 }
 
 // --- Main Settings Page ---
 export default function SettingsPage() {
-  const { 
-    isEnabled, 
-    isSupported, 
-    register, 
-    disable, 
-    hasPinFallback, 
-    setPinFallback, 
-    removePinFallback 
+  const {
+    isEnabled,
+    isSupported,
+    register,
+    disable,
+    hasPinFallback,
+    setPinFallback,
+    removePinFallback
   } = useBioLock();
-  const { theme, setTheme } = useTheme();
+  const { bootswatchTheme, setBootswatchTheme } = useTheme();
 
   // Backup PIN states
   const [showPinModal, setShowPinModal] = useState(false);
@@ -456,9 +455,9 @@ export default function SettingsPage() {
         id="settings-tabs"
         className="mb-4 flex-nowrap flex-md-wrap overflow-x-auto overflow-y-hidden py-1 align-items-stretch"
       >
-        <Tab 
-          eventKey="general" 
-          title={<><BsShieldLock className="me-2"/>General</>}
+        <Tab
+          eventKey="general"
+          title={<><BsShieldLock className="me-2" />General</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <Card className="mb-4">
@@ -467,28 +466,41 @@ export default function SettingsPage() {
               <Form.Group>
                 <Form.Label className="h5 mb-1">Theme</Form.Label>
                 <p className="text-muted mb-3">
-                  Choose how the app looks on your device.
+                  Instantly skin the entire interface with a dynamic preset theme.
                 </p>
-                <div className="d-flex gap-2">
-                  {(["system", "light", "dark"] as Theme[]).map((t) => {
-                    let Icon = BsDisplay;
-                    if (t === "light") Icon = FaSun;
-                    if (t === "dark") Icon = FaMoon;
-                    
-                    return (
-                      <Button
-                        size="sm"
-                        key={t}
-                        variant={theme === t ? "primary" : "outline-primary"}
-                        onClick={() => setTheme(t)}
-                        className="text-capitalize px-2 d-flex align-items-center gap-2"
-                      >
-                        <Icon />
-                        {t === "system" ? "System Default" : t}
-                      </Button>
-                    );
-                  })}
-                </div>
+                <Form.Select
+                  value={bootswatchTheme}
+                  onChange={(e) => setBootswatchTheme(e.target.value as any)}
+                  className="w-100 max-w-sm text-capitalize"
+                  style={{ maxWidth: "350px" }}
+                >
+                  <option value="default">Default Bootstrap</option>
+                  <option value="cerulean">Cerulean (Clean Ocean Blue)</option>
+                  <option value="cosmo">Cosmo (Metro Sharp Dark Blue)</option>
+                  <option value="cyborg">Cyborg (Dark Cyberpunk Neo)</option>
+                  <option value="darkly">Darkly (Material Flat Dark)</option>
+                  <option value="flatly">Flatly (Clean Corporate Slate)</option>
+                  <option value="journal">Journal (Warm Literary Paper)</option>
+                  <option value="litera">Litera (Crisp White Editorial)</option>
+                  <option value="lumen">Lumen (Bright Minimalist Light)</option>
+                  <option value="lux">Lux (Luxury High-End Serif)</option>
+                  <option value="materia">Materia (Material Shadow Curves)</option>
+                  <option value="minty">Minty (Fresh Green Pastel)</option>
+                  <option value="morph">Morph (Neomorphic Soft Shadows)</option>
+                  <option value="pulse">Pulse (Polished Modern Violet)</option>
+                  <option value="quartz">Quartz (Aesthetic Glassmorphism & Gradients)</option>
+                  <option value="sandstone">Sandstone (Sophisticated Warm Sand)</option>
+                  <option value="simplex">Simplex (Minimalist Red Slate)</option>
+                  <option value="sketchy">Sketchy (Creative Hand-Drawn Blueprint)</option>
+                  <option value="slate">Slate (Industrial Tech Dark)</option>
+                  <option value="solar">Solar (Deep Warm Amber Dark)</option>
+                  <option value="spacelab">Spacelab (Polished Chrome Metallic)</option>
+                  <option value="superhero">Superhero (Dark Cyber Indigo)</option>
+                  <option value="united">United (Energetic Orange Accent)</option>
+                  <option value="vapor">Vapor (Cyber Neon Glowing Dark)</option>
+                  <option value="yeti">Yeti (Cool Crisp Alpine Blue)</option>
+                  <option value="zephyr">Zephyr (Airy Soft Modern Pastels)</option>
+                </Form.Select>
               </Form.Group>
             </Card.Body>
           </Card>
@@ -538,13 +550,13 @@ export default function SettingsPage() {
                   <div>
                     <h5 className="mb-1">Local Backup PIN</h5>
                     <p className="text-muted mb-0 small">
-                      {hasPinFallback 
+                      {hasPinFallback
                         ? "Backup PIN is active and configured."
                         : "⚠️ No backup PIN configured yet. Set a PIN to prevent lockout."
                       }
                     </p>
                   </div>
-                  <Button 
+                  <Button
                     variant={hasPinFallback ? "outline-warning" : "warning"}
                     size="sm"
                     className="rounded-pill px-3"
@@ -632,98 +644,98 @@ export default function SettingsPage() {
 
         </Tab>
 
-        <Tab 
-          eventKey="family" 
-          title={<><BsPeople className="me-2"/>Family</>}
+        <Tab
+          eventKey="family"
+          title={<><BsPeople className="me-2" />Family</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <HoldersPage />
         </Tab>
-        <Tab 
-          eventKey="accounts" 
-          title={<><BsBank className="me-2"/>Accounts</>}
+        <Tab
+          eventKey="accounts"
+          title={<><BsBank className="me-2" />Accounts</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <AccountsPage />
         </Tab>
-        <Tab 
-          eventKey="buckets" 
-          title={<><BsBucket className="me-2"/>Buckets</>}
+        <Tab
+          eventKey="buckets"
+          title={<><BsBucket className="me-2" />Buckets</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <BucketsPage />
         </Tab>
-        <Tab 
-          eventKey="asset-classes" 
-          title={<><BsLayersHalf className="me-2"/>Types</>}
+        <Tab
+          eventKey="asset-classes"
+          title={<><BsLayersHalf className="me-2" />Types</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <AssetClassesPage />
         </Tab>
-        <Tab 
-          eventKey="asset-sub-classes" 
-          title={<><BsLayers className="me-2"/>Sub-Types</>}
+        <Tab
+          eventKey="asset-sub-classes"
+          title={<><BsLayers className="me-2" />Sub-Types</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <AssetSubClassesPage />
         </Tab>
-        <Tab 
-          eventKey="asset-purpose" 
-          title={<><BsFlag className="me-2"/>Purpose</>}
+        <Tab
+          eventKey="asset-purpose"
+          title={<><BsFlag className="me-2" />Purpose</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <AssetPurposePage />
         </Tab>
-         <Tab 
-          eventKey="sip-types" 
-          title={<><BsGraphUp className="me-2"/>SIP Types</>}
+        <Tab
+          eventKey="sip-types"
+          title={<><BsGraphUp className="me-2" />SIP Types</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <SipTypesPage />
         </Tab>
-        <Tab 
-          eventKey="loan-types" 
-          title={<><BsFileEarmarkText className="me-2"/>Loan Types</>}
+        <Tab
+          eventKey="loan-types"
+          title={<><BsFileEarmarkText className="me-2" />Loan Types</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <LoanTypesPage />
         </Tab>
-        <Tab 
-          eventKey="insurance-types" 
-          title={<><BsShieldCheck className="me-2"/>Insurance Types</>}
+        <Tab
+          eventKey="insurance-types"
+          title={<><BsShieldCheck className="me-2" />Insurance Types</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <InsuranceTypesPage />
         </Tab>
-        <Tab 
-          eventKey="system-properties" 
-          title={<><BsSliders className="me-2"/>System</>}
+        <Tab
+          eventKey="system-properties"
+          title={<><BsSliders className="me-2" />System</>}
           tabClassName="h-100 d-flex align-items-center"
         >
           <SystemPropertiesPage />
         </Tab>
 
-        <Tab 
-          eventKey="data" 
-          title={<><BsDatabase className="me-2"/>Data</>}
+        <Tab
+          eventKey="data"
+          title={<><BsDatabase className="me-2" />Data</>}
           tabClassName="h-100 d-flex align-items-center"
         >
-            <DataManagementTab />
+          <DataManagementTab />
         </Tab>
-        <Tab 
-          eventKey="query-builder" 
-          title={<><BsFiletypeSql className="me-2"/>Query Builder</>}
+        <Tab
+          eventKey="query-builder"
+          title={<><BsFiletypeSql className="me-2" />Query Builder</>}
           tabClassName="h-100 d-flex align-items-center"
         >
-            <QueryBuilderPage />
+          <QueryBuilderPage />
         </Tab>
 
-        <Tab 
-          eventKey="debug" 
-          title={<><VscDebugLineByLine className="me-2"/>Logs</>}
+        <Tab
+          eventKey="debug"
+          title={<><VscDebugLineByLine className="me-2" />Logs</>}
           tabClassName="h-100 d-flex align-items-center"
         >
-            <DebugConsole />
+          <DebugConsole />
         </Tab>
       </Tabs>
     </Container>

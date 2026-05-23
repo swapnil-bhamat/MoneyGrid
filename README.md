@@ -196,7 +196,10 @@ npm run dev
 
 ## 🎨 Design System
 
-The application utilizes a customized **Bootstrap 5** theme with **React Bootstrap** components. It features a modern, responsive design with dark mode support and consistent styling across all views.
+The application features a modern, elite **Bootswatch Theme Engine** built directly on top of **Bootstrap 5** and **React Bootstrap**:
+- **Dynamic 25+ Preset Themes**: Users can instantly skin the entire interface using a curated list of Bootswatch presets loaded dynamically from jsDelivr CDN.
+- **Zero-Flash Pre-Loading**: A synchronous inline head script restores the saved theme instantly from `localStorage` upon reload, preventing any flash-of-unstyled-content (FOUC).
+- **Theme-Agnostic High Legibility**: Category cards, row sub-palettes, and sidebars utilize high-contrast native text-emphasis variables (`var(--bs-primary-text-emphasis)`) and theme-compliant layouts. Standard container styling uses `bg-body-secondary` to guarantee readable typography in both light and dark modes.
 
 ## 🔒 Security & Privacy
 

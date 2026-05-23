@@ -21,7 +21,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className="d-flex gap-2">
       <InputGroup className="flex-grow-1">
-        <InputGroup.Text className="bg-body-secondary border-end-0">
+        <InputGroup.Text className="border-end-0">
           <BsSearch className="text-muted" />
         </InputGroup.Text>
         <Form.Control
@@ -29,7 +29,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           placeholder="  Search..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="border-start-0 ps-0 bg-body"
+          className="border-start-0 ps-0"
         />
         <Button
           variant="outline-primary"

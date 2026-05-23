@@ -153,6 +153,19 @@ The app uses IndexedDB via Dexie.js (Current Schema Version: **12**). Key tables
 - `reits`: Real Estate Investment Trusts with yields and holdings.
 - `history`: Session-based operations queue supporting multi-level undo/redo operations.
 
+## 🎨 Dynamic Bootswatch Theme Engine & Contrast Guidelines
+1. **Dynamic CDN Theme Swapping**:
+   - Replaced heavy local Bootstrap compilation with a single `<link id="bootswatch-theme">` tag inside `index.html`.
+   - The React `ThemeProvider` (`src/contexts/themeContext.tsx`) dynamically updates this link's `href` to fetch any of the 25+ Bootswatch theme presets natively from the jsDelivr CDN.
+2. **Zero-Flash Head Restoring Script**:
+   - An inline blocking script inside `<head>` reads `bootswatch_theme` from `localStorage` and swaps the CSS link *synchronously* before DOM parsing begins.
+   - It also applies the correct `data-bs-theme` (dark or light) attribute to `document.documentElement` immediately, ensuring a 100% glitch-free reload experience.
+3. **High-Contrast Typography & Container Mappings**:
+   - Mapped dynamic row and card classes (`.dynamic-bg-1` to `.dynamic-bg-8`) to dynamic background subtle and text emphasis variables:
+     - `background-color: var(--bs-[color]-bg-subtle)`
+     - `color: var(--bs-[color]-text-emphasis)`
+   - **Crucial Rule**: Never hardcode colors or use accent subtle variables (`bg-light-subtle`, `bg-dark-subtle`) for general container backgrounds, as they wash out and cause zero-contrast text readability bugs in dark/light modes. Always use standard theme-aware backgrounds like `bg-body-secondary` and `bg-body-tertiary` to ensure perfect accessibility!
+
 ## 🔐 Authentication & Security Flow
 1. **Local Authentication (`BioLockProvider`)**:
    - Integrates biometrics/WebAuthn where possible, falling back to secure password configuration.

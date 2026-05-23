@@ -122,7 +122,7 @@ export default function Layout() {
                               className={`nav-link d-flex align-items-center gap-2 py-2 rounded-2 ${
                                 isSubActive
                                   ? "bg-primary text-white shadow-sm"
-                                  : "text-body"
+                                  : "text-body-secondary"
                               }`}
                               onClick={onLinkClick}
                             >
