@@ -1,5 +1,6 @@
 import { logError, logInfo } from '@/services/logger';
 import { InitializationData } from "@/infrastructure/db/db";
+import { encrypt, decrypt, getPassphrase } from "@/utils/encryption";
 
 export interface DriveFile {
   id: string;
@@ -120,10 +121,23 @@ const getUserInfo = async (accessToken: string): Promise<GoogleUserInfo | null> 
 };
 
 export const initializeGoogleDrive = async (): Promise<GoogleUserInfo | null> => {
-  const savedToken = sessionStorage.getItem('googleDriveToken');
+  const savedToken = localStorage.getItem('googleDriveToken') || sessionStorage.getItem('googleDriveToken');
   if (savedToken) {
     try {
-      const tokens = JSON.parse(savedToken);
+      let decryptedTokenStr = savedToken;
+      if (savedToken.startsWith("ENC:")) {
+        try {
+          decryptedTokenStr = await decrypt(savedToken, getPassphrase());
+        } catch (decryptErr) {
+          logInfo('Failed to decrypt saved token, clearing:', { error: decryptErr });
+          localStorage.removeItem('googleDriveToken');
+          sessionStorage.removeItem('googleDriveToken');
+          authState.accessToken = null;
+          return null;
+        }
+      }
+
+      const tokens = JSON.parse(decryptedTokenStr);
       
       // Check if token is expired based on local timestamp (1 hour expiry)
       const now = Date.now();
@@ -132,6 +146,7 @@ export const initializeGoogleDrive = async (): Promise<GoogleUserInfo | null> =>
 
       if (isExpired) {
         logInfo('Token expired locally');
+        localStorage.removeItem('googleDriveToken');
         sessionStorage.removeItem('googleDriveToken');
         authState.accessToken = null;
         return null;
@@ -148,10 +163,12 @@ export const initializeGoogleDrive = async (): Promise<GoogleUserInfo | null> =>
         }
       }
       
+      localStorage.removeItem('googleDriveToken');
       sessionStorage.removeItem('googleDriveToken');
       authState.accessToken = null;
     } catch (error) {
       logInfo('Failed to restore Google Drive session', { error });
+      localStorage.removeItem('googleDriveToken');
       sessionStorage.removeItem('googleDriveToken');
     }
   }
@@ -197,10 +214,13 @@ export const signInWithGoogleDrive = async (): Promise<GoogleUserInfo> => {
               }
 
               authState.accessToken = response.access_token;
-              sessionStorage.setItem('googleDriveToken', JSON.stringify({
+              const tokenData = JSON.stringify({
                 access_token: response.access_token,
                 timestamp: Date.now()
-              }));
+              });
+              const encryptedToken = await encrypt(tokenData, getPassphrase());
+              localStorage.setItem('googleDriveToken', encryptedToken);
+              sessionStorage.setItem('googleDriveToken', tokenData);
 
               const userInfo = await getUserInfo(response.access_token);
               if (userInfo) {
@@ -237,6 +257,7 @@ export const signOut = async () => {
     }
     
     authState.accessToken = null;
+    localStorage.removeItem('googleDriveToken');
     sessionStorage.removeItem('googleDriveToken');
     logInfo('Signed out from Google Drive');
   }

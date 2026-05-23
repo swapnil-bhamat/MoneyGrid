@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Container, Button, Card, Form, Alert } from "react-bootstrap";
 import { useBioLock } from "@/contexts/bioLockContext";
 import { FaLock, FaKey, FaChevronLeft } from "react-icons/fa";
@@ -9,6 +9,18 @@ const BioLockScreen: React.FC = () => {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
+  // Programmatic keyboard focus triggers for mobile/PWA environments
+  useEffect(() => {
+    if (usePin) {
+      pinInputRef.current?.focus();
+      const timer = setTimeout(() => {
+        pinInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [usePin]);
 
   // Clear states when screen unlocks
   useEffect(() => {
@@ -49,17 +61,17 @@ const BioLockScreen: React.FC = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(33, 37, 41, 0.98)", // Solid backdrop fallback
+        backgroundColor: "rgba(var(--bs-body-bg-rgb), 0.96)",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
       }}
     >
       <Container style={{ maxWidth: "400px" }}>
-        <Card className="text-center shadow-lg glass-card text-light">
+        <Card className="text-center shadow-lg glass-card text-body">
           <Card.Body className="py-5 px-4">
             {!usePin ? (
               <>
@@ -67,7 +79,7 @@ const BioLockScreen: React.FC = () => {
                   <FaLock size={64} className="text-primary animate-pulse" />
                 </div>
                 <h2 className="mb-3 fw-bold">App Locked</h2>
-                <p className="text-muted mb-4">
+                <p className="text-body-secondary mb-4">
                   Authentication is required to access your financial data.
                 </p>
                 <div className="d-flex flex-column gap-2">
@@ -84,7 +96,7 @@ const BioLockScreen: React.FC = () => {
                     <Button
                       variant="outline-secondary"
                       size="lg"
-                      className="w-100 rounded-pill py-2 fs-6 fw-medium text-light border-secondary"
+                      className="w-100 rounded-pill py-2 fs-6 fw-medium border-secondary"
                       onClick={() => setUsePin(true)}
                     >
                       <FaKey className="me-2" size={14} />
@@ -98,7 +110,7 @@ const BioLockScreen: React.FC = () => {
                 <div className="text-start mb-3">
                   <Button
                     variant="link"
-                    className="text-light p-0 d-flex align-items-center gap-1 text-decoration-none small opacity-75"
+                    className="text-body p-0 d-flex align-items-center gap-1 text-decoration-none small opacity-75"
                     onClick={() => {
                       setUsePin(false);
                       setPin("");
@@ -114,7 +126,7 @@ const BioLockScreen: React.FC = () => {
                   <FaKey size={56} className="text-warning" />
                 </div>
                 <h3 className="mb-2 fw-bold">Enter Fallback PIN</h3>
-                <p className="text-muted small mb-4">
+                <p className="text-body-secondary small mb-4">
                   Please enter your 4 to 8 digit local backup PIN code.
                 </p>
 
@@ -126,11 +138,12 @@ const BioLockScreen: React.FC = () => {
 
                 <Form.Group className="mb-4">
                   <Form.Control
+                    ref={pinInputRef}
                     type="password"
                     pattern="[0-9]*"
                     inputMode="numeric"
                     placeholder="••••••"
-                    className="text-center fs-2 bg-dark bg-opacity-50 border-secondary text-light py-2 rounded-3"
+                    className="text-center fs-2 py-2 rounded-3"
                     value={pin}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const val = e.target.value.replace(/\D/g, "");
@@ -138,9 +151,13 @@ const BioLockScreen: React.FC = () => {
                         setPin(val);
                       }
                     }}
-                    autoFocus
                     disabled={isVerifying}
-                    style={{ letterSpacing: "0.4em" }}
+                    style={{
+                      letterSpacing: "0.4em",
+                      backgroundColor: "rgba(var(--bs-body-color-rgb), 0.08)",
+                      color: "var(--bs-body-color)",
+                      borderColor: "var(--bs-border-color)",
+                    }}
                   />
                 </Form.Group>
 
