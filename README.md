@@ -108,7 +108,7 @@ src/
 ├── app/                  # Application bootstrappers, global providers, root routing and layouts
 │   └── __tests__/        # Integration tests for core application flow
 ├── components/           # Reusable stand-alone UI elements, grouped logically:
-│   ├── common/           # Shared generic inputs, selectors, tables, gauges, and CustomPieChart
+│   ├── common/           # Shared generic inputs, selectors, tables, gauges, CustomPieChart, GenericCRUDPage, HolderSelect, AccountSelect, AssetClassSelect
 │   ├── layout/           # BasePage templates, core Layout shell, error boundaries, navigation controls
 │   ├── widgets/          # Dynamic standalone card widgets (Gold Calculator, Daily Tips, Gold Rates)
 │   └── [domain]/         # Domain-focused visual panels (e.g. analytics, backups, budgets, auth, ai)
@@ -129,8 +129,8 @@ src/
 ├── service-worker/       # PWA custom service worker and Workbox registration precaching
 ├── services/             # Shared business services (driveSync, googleDrive, aiService, configService, marketData)
 ├── styles/               # Global styling system, scss variables, design theme layouts
-├── types/                # Centralized interface definitions (UI columns, type models)
-├── utils/                # Pure utility functions (encryption, financialUtils, notifications, numberUtils)
+├── types/                # Centralized interface definitions (UI columns, type models, crud.types)
+├── utils/                # Pure utility functions (encryption, financialUtils, notifications, numberUtils, dateUtils)
 └── test/                 # Test setups and general Vitest environment definitions
 ```
 

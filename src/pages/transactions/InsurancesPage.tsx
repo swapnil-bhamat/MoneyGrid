@@ -10,23 +10,8 @@ import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
 
-// Helper function to convert DD-MM-YYYY to YYYY-MM-DD for date input
-function convertToDateInputFormat(dateStr: string): string {
-  if (!dateStr || dateStr.trim() === "") return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "";
-  const [day, month, year] = parts;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-// Helper function to convert YYYY-MM-DD to DD-MM-YYYY for storage
-function convertFromDateInputFormat(dateStr: string): string {
-  if (!dateStr || dateStr.trim() === "") return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "";
-  const [year, month, day] = parts;
-  return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
-}
+import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
+import HolderSelect from "@/components/common/HolderSelect";
 
 interface InsuranceFormProps {
   show: boolean;
@@ -45,7 +30,6 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
   const [renewDate, setRenewDate] = useState(item?.renewDate ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
 
-  const holders = useLiveQuery(() => db.holders.toArray()) ?? [];
   const insuranceTypes = useLiveQuery(() => db.insuranceTypes.toArray()) ?? [];
 
   useEffect(() => {
@@ -93,13 +77,9 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
       title={item ? "Edit Insurance" : "Add Insurance"}
       isValid={!!holders_id && !!insuranceType_id && premiumYearly >= 0}
     >
-      <FormSelect
-        controlId="formInsuranceHolder"
-        label="Holder"
+      <HolderSelect
         value={holders_id}
-        onChange={(e) => setHoldersId(Number(e.target.value))}
-        options={holders.map((h) => ({ id: h.id!, name: h.name }))}
-        defaultText="Select Holder"
+        onChange={setHoldersId}
       />
       <FormSelect
         controlId="formInsuranceType"

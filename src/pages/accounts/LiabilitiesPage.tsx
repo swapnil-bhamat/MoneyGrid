@@ -19,23 +19,7 @@ import FormSelect from "@/components/common/FormSelect";
 import { calculateEMI, calculateRemainingBalance } from "@/utils/financialUtils";
 import { getDynamicBgClass } from "@/utils/colorUtils";
 
-// Helper function to convert DD-MM-YYYY to YYYY-MM-DD for date input
-function convertToDateInputFormat(dateStr: string): string {
-  if (!dateStr || dateStr.trim() === "") return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "";
-  const [day, month, year] = parts;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-// Helper function to convert YYYY-MM-DD to DD-MM-YYYY for storage
-function convertFromDateInputFormat(dateStr: string): string {
-  if (!dateStr || dateStr.trim() === "") return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "";
-  const [year, month, day] = parts;
-  return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
-}
+import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 
 function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
   const [loanType_id, setLoanTypeId] = useState(item?.loanType_id ?? 0);

@@ -1,6 +1,25 @@
 # 🧠 Antigravity (PWA Finance Elite SE Agent Context)
 
-This file contains high-fidelity architectural memory and context for pair programming. Always keep it in sync with the codebase state.
+This file contains high-fidelity architectural memory, context, and developer protocols for pair programming. When a user tags this file, the agent instantly assumes the persona and responsibility of an **Elite Lead Software Engineer** and executes according to the strict guidelines below.
+
+---
+
+## 👨‍💻 ELITE LEAD SOFTWARE ENGINEER RUNBOOK & OPERATING DIRECTIVES
+
+When the user tags or references this context file and describes their expectation (e.g. *"Expectation: [Description]"*), the agent MUST immediately act under this rigorous engineering checklist:
+
+### 🎯 1. Role & Engineering Quality Standards
+* **DRY (Don't Repeat Yourself) Above All**: Avoid writing custom forms, copy-pasting utility helpers, or writing raw IndexedDB queries in multiple visual pages. Build reusable, cohesive components, generic abstractions (`GenericCRUDPage.tsx`), and central utilities (`src/utils/`).
+* **Strict Type Safety**: Write highly robust, type-checked generic constraints. Avoid using `any` unless absolutely necessary; ensure perfect compilation through the production compiler.
+* **Premium User Experience (WOW Factor)**: Visual excellence is mandatory. Build designs using cohesive HSL/dark-mode colors, micro-animations, aspect-ratio controls, clean spacing, and modern typography. Never implement simple, basic MVPs.
+
+### 📋 2. Execution Flow for Expectations
+* **Phase 1: Deep Codebase & Schema Scan**: Automatically scan existing components (`src/components/common/`), schema definitions (`src/infrastructure/db/`), types, and helpers to reuse as much code as possible.
+* **Phase 2: Comprehensive Implementation Plan**: Author a detailed, structured implementation plan with target file directories, exact TS types, and a clear architectural breakdown before making changes.
+* **Phase 3: Strict Task Tracker (`task.md`)**: Create/update the `task.md` checklist with component-level tasks and explicit completion markers (`[x]`).
+* **Phase 4: Verification & Compilation**: Always run the regression test suite (`npx vitest run`) and confirm bundle compilation (`npm run build`) before delivering the final report.
+
+---
 
 ## 🏗️ Project Architecture (Flattened & Simplified)
 To keep the codebase simple and highly scalable for new developers, we have replaced the dual `domains/` and `shared/` directory hierarchy with a consolidated, clean, role-based architecture. All source files now live directly under well-defined, single-purpose directories in `src/`:
@@ -88,7 +107,7 @@ flowchart TD
 
 - `src/app/`: Root application bootstrappers, providers, central routing configurations (`App.tsx`, `main.tsx`), and core integration tests (`__tests__/`).
 - `src/components/`: Reusable stand-alone UI elements and visual blocks, grouped logically by domain focus:
-  - `common/`: Shared generic components (e.g., inputs, selectors, tables, confirmation modals, gauges, `CustomPieChart.tsx`).
+  - `common/`: Shared generic components (e.g., inputs, selectors, tables, confirmation modals, gauges, `CustomPieChart.tsx`, `GenericCRUDPage.tsx`, `HolderSelect.tsx`, `AccountSelect.tsx`, `AssetClassSelect.tsx`).
   - `layout/`: Shell layout templates, error boundaries, core navigation bars, and undo/redo controls (`Layout.tsx`, `BasePage.tsx`).
   - `widgets/`: Dynamic standalone card widgets (e.g., gold rate calculator, gold rates widget, daily tips card).
   - `analytics/`, `backups/`, `budgets/`, `accounts/`, `auth/`, `ai/`: Cohesive components specific to these functional areas.
@@ -109,8 +128,8 @@ flowchart TD
 - `src/service-worker/`: PWA service worker configurations, Workbox cache layer, and registrations.
 - `src/services/`: Shared business, networking, or cloud services (e.g., Google Drive client, Gemini API, Gold API cache, logging).
 - `src/styles/`: Bootstrap overrides, CSS variables, and Sass modules (`main.scss`).
-- `src/types/`: Centralized interface models (e.g., UI columns, custom type defs).
-- `src/utils/`: Pure utilities (e.g., encryption helpers, Indian-to-international gold converter, number formatting, notification banners).
+- `src/types/`: Centralized interface models (e.g., UI columns, custom type defs, `crud.types.ts`).
+- `src/utils/`: Pure utilities (e.g., encryption helpers, Indian-to-international gold converter, number formatting, notification banners, `dateUtils.ts`).
 
 ## 💾 Data Schema (Dexie.js)
 The app uses IndexedDB via Dexie.js (Current Schema Version: **12**). Key tables and their purposes:
