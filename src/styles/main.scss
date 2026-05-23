@@ -4,6 +4,7 @@
 
 // Unified Structural Layout & Dynamic Colors Map
 :root {
+  color-scheme: light;
   --layout-sidebar-bg: var(--bs-body-bg);
   --layout-header-bg: var(--bs-body-bg);
   --layout-content-bg: var(--bs-body-bg);
@@ -29,6 +30,34 @@
   --dynamic-text-6: var(--bs-secondary-text-emphasis);
   --dynamic-text-7: var(--bs-light-text-emphasis);
   --dynamic-text-8: var(--bs-dark-text-emphasis);
+}
+
+[data-bs-theme="dark"] {
+  color-scheme: dark;
+
+  // Gentle fallback to ensure form inputs are dark-themed if a custom preset stylesheet lacks specific definitions
+  .form-control,
+  .form-select {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+    
+    &:focus {
+      background-color: var(--bs-body-bg);
+      color: var(--bs-body-color);
+      border-color: var(--bs-primary);
+    }
+  }
+}
+
+/* Prevent Chrome autofill overlays from forcing a white/yellow background in dark input boxes */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--bs-body-color) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 @for $i from 1 through 8 {
