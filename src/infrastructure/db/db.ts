@@ -1,5 +1,5 @@
 import Dexie, { Table } from "dexie";
-import { logError, logInfo } from "@/shared/services/logger";
+import { logError, logInfo } from "@/services/logger";
 import {
   Config,
   AssetPurpose,
@@ -24,7 +24,7 @@ import {
   Insurance,
 } from "@/infrastructure/db/db.types";
 import { defineSchema } from "@/infrastructure/db/dbMigrations";
-import { historyService } from "@/shared/services/historyService";
+import { historyService } from "@/services/historyService";
 
 // Re-export types for backward compatibility
 export * from "@/infrastructure/db/db.types";

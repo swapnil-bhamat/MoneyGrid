@@ -47,60 +47,91 @@ A Progressive Web Application for personal finance management, built with React,
 graph TD
     User((User))
 
-    subgraph "Presentation Layer"
-        UI[React View]
-        Dashboard[Dashboard & KPIs]
-        Settings[Settings & Tools]
+    subgraph Presentation["Presentation Layer (React 19)"]
+        UI[App Shell / Layout]
+        Pages[Flat Route Pages: Analytics, Accounts, Transactions, Budgets, Backups, Auth, Shared]
+        AIChat[Gemini Assistant Chatbot UI]
     end
 
-    subgraph "Core Services"
-        Logic[Business Logic & ROI]
-        AI[Gemini AI Assistant]
-        Sync[Drive Sync & Backup]
+    subgraph Services["Core Services & Shared Logic"]
+        HistoryService[History Service: Session Undo/Redo]
+        BackupService[Drive Backup Service: Versioned Cloud Sync]
+        CryptoService[Crypto Service: AES-GCM Encryption]
+        MarketService[Market Data Service: Gold/Silver Rates Cache]
+        GeminiService[Gemini Assistant: Context Generation]
     end
 
-    subgraph "Data Persistence"
-        IndexedDB[(Dexie.js Local DB)]
-        EncryptedConfig[IndexedDB Web Crypto AES-GCM]
+    subgraph Persistence["Data Persistence Layer"]
+        DexieDB[(Dexie.js IndexedDB Local DB)]
+        LocalStorage[(Browser LocalStorage Cache)]
     end
 
-    subgraph "External Cloud"
-        GDrive[Google Drive]
-        GeminiAPI[Google Generative AI]
-        GoldAPI[GoldAPI.io]
+    subgraph Cloud["External Cloud Services"]
+        GDrive[Google Drive API]
+        GeminiAPI[Google Generative AI API]
+        GoldAPI[GoldAPI.io API]
     end
 
-    %% Flow
+    %% Presentation flow
     User <--> UI
-    UI --> Logic
+    UI <--> Pages
+    UI <--> AIChat
 
-    Logic <--> IndexedDB
-    Logic <--> EncryptedConfig
+    %% Domain business logic calling core services
+    Pages --> HistoryService
+    Pages --> MarketService
+    Pages --> BackupService
+    AIChat --> GeminiService
 
-    %% Features
-    Dashboard -.-> Logic
-    Settings -.-> Sync
+    %% Core Services interactions with Persistence
+    HistoryService <--> DexieDB
+    MarketService <--> LocalStorage
+    BackupService <--> DexieDB
+    BackupService --> CryptoService
+    GeminiService -.-> DexieDB
+    
+    %% Crypto Service working with Dexie
+    CryptoService <--> DexieDB
 
-    %% AI Flow
-    UI <--> AI
-    AI <--> GeminiAPI
-    AI -.-> IndexedDB
-
-    %% External Integrations
-    Sync <--> GDrive
-    Logic -.-> GoldAPI
+    %% External Cloud Integrations
+    BackupService <--> GDrive
+    GeminiService <--> GeminiAPI
+    MarketService <--> GoldAPI
 ```
 
 ## 📂 Project Structure
 
-```
+To keep the codebase simple and highly scalable for new developers, the dual `domains/` and `shared/` directory structure has been replaced by a flat, clean, role-based folder hierarchy:
+
+```text
 src/
-├── app/            # App initialization, main routes, layouts, and registration entry
-├── domains/        # Domain-driven slices (auth, backups, analytics)
-├── infrastructure/ # Central Dexie.js database definition and version migrations
-├── service-worker/ # PWA custom Workbox Service Worker sync and cache layers
-├── shared/         # Reusable layouts, tip cards, financial math formulas, logging, undo-redo history
-└── styles/         # Global stylesheets, custom SASS theme variables, and visual tokens
+├── app/                  # Application bootstrappers, global providers, root routing and layouts
+│   └── __tests__/        # Integration tests for core application flow
+├── components/           # Reusable stand-alone UI elements, grouped logically:
+│   ├── common/           # Shared generic inputs, selectors, tables, gauges, CustomPieChart, GenericCRUDPage, HolderSelect, AccountSelect, AssetClassSelect
+│   ├── layout/           # BasePage templates, core Layout shell, error boundaries, navigation controls
+│   ├── widgets/          # Dynamic standalone card widgets (Gold Calculator, Daily Tips, Gold Rates)
+│   └── [domain]/         # Domain-focused visual panels (e.g. analytics, backups, budgets, auth, ai)
+├── contexts/             # Shared React state providers (Theme, Auth, BioLock, DashboardData)
+├── data/                 # Static data sources, calculators data, and default tips (reitData, financialTips)
+├── hooks/                # Shareable React hooks (useMobile, useUndoRedo, useAuth, useDashboardData)
+├── infrastructure/       # Core low-level database configurations:
+│   ├── crypto/           # Cryptographic infrastructure helpers
+│   └── db/               # Dexie.js database instances, schemas definitions, types, and version migrations
+├── pages/                # Page views representing route endpoints, flat and simple to find:
+│   ├── analytics/        # Dashboard, FIRE page, asset projections, tools, and systematic withdrawal page (SwpPage)
+│   ├── accounts/         # Portfolios, holdings, bank accounts, holders, asset classes, and REITs
+│   ├── transactions/     # Income flows, cash flow merging, upcoming expenses, insurances, and types pages
+│   ├── budgets/          # Goals tracking and monthly category budget cards
+│   ├── backups/          # Google Drive sync panel, debug logs console, and DB query builder
+│   ├── auth/             # Login/Credential lock portal
+│   └── shared/           # Generic core pages (e.g., About page, Finance Guidelines)
+├── service-worker/       # PWA custom service worker and Workbox registration precaching
+├── services/             # Shared business services (driveSync, googleDrive, aiService, configService, marketData)
+├── styles/               # Global styling system, scss variables, design theme layouts
+├── types/                # Centralized interface definitions (UI columns, type models, crud.types)
+├── utils/                # Pure utility functions (encryption, financialUtils, notifications, numberUtils, dateUtils)
+└── test/                 # Test setups and general Vitest environment definitions
 ```
 
 ## 🚀 Tech Stack
@@ -165,7 +196,10 @@ npm run dev
 
 ## 🎨 Design System
 
-The application utilizes a customized **Bootstrap 5** theme with **React Bootstrap** components. It features a modern, responsive design with dark mode support and consistent styling across all views.
+The application features a modern, elite **Bootswatch Theme Engine** built directly on top of **Bootstrap 5** and **React Bootstrap**:
+- **Dynamic 25+ Preset Themes**: Users can instantly skin the entire interface using a curated list of Bootswatch presets loaded dynamically from jsDelivr CDN.
+- **Zero-Flash Pre-Loading**: A synchronous inline head script restores the saved theme instantly from `localStorage` upon reload, preventing any flash-of-unstyled-content (FOUC).
+- **Theme-Agnostic High Legibility**: Category cards, row sub-palettes, and sidebars utilize high-contrast native text-emphasis variables (`var(--bs-primary-text-emphasis)`) and theme-compliant layouts. Standard container styling uses `bg-body-secondary` to guarantee readable typography in both light and dark modes.
 
 ## 🔒 Security & Privacy
 
