@@ -4,29 +4,29 @@ import {
   Navigate,
 } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
-import { AuthProvider } from "@/domains/auth/contexts/authContext";
+import { AuthProvider } from "@/contexts/authContext";
 
-import Layout from "@/shared/components/Layout";
+import Layout from "@/components/layout/Layout";
 
-import CashFlowPage from "@/domains/transactions/pages/CashFlowPage";
-import IncomePage from "@/domains/transactions/pages/IncomePage";
-import SettingsPage from "@/domains/backups/pages/SettingsPage";
-import ToolsPage from "@/domains/analytics/pages/ToolsPage";
-import Dashboard from "@/domains/analytics/pages/Dashboard";
-import FirePage from "@/domains/analytics/pages/FirePage";
-import AssetsHoldingsPage from "@/domains/accounts/pages/AssetsHoldingsPage";
-import GoalsPage from "@/domains/budgets/pages/GoalsPage";
-import ErrorBoundary from "@/shared/components/ErrorBoundary";
-import AboutPage from "@/shared/pages/AboutPage";
-import FinanceRules from "@/shared/pages/FinanceRules";
-import AssetAllocationProjectionPage from "@/domains/analytics/pages/AssetAllocationProjectionPage";
-import { BioLockProvider } from "@/domains/auth/contexts/bioLockContext";
-import { DashboardDataProvider } from "@/domains/analytics/contexts/DashboardDataContext";
-import { ThemeProvider } from "@/shared/services/themeContext";
-import BioLockScreen from "@/domains/auth/components/BioLockScreen";
-import LiabilitiesPage from "@/domains/accounts/pages/LiabilitiesPage";
-import UpcomingExpensesPage from "@/domains/transactions/pages/UpcomingExpensesPage";
-import InsurancesPage from "@/domains/transactions/pages/InsurancesPage";
+import CashFlowPage from "@/pages/transactions/CashFlowPage";
+import IncomePage from "@/pages/transactions/IncomePage";
+import SettingsPage from "@/pages/backups/SettingsPage";
+import ToolsPage from "@/pages/analytics/ToolsPage";
+import Dashboard from "@/pages/analytics/Dashboard";
+import FirePage from "@/pages/analytics/FirePage";
+import AssetsHoldingsPage from "@/pages/accounts/AssetsHoldingsPage";
+import GoalsPage from "@/pages/budgets/GoalsPage";
+import ErrorBoundary from "@/components/layout/ErrorBoundary";
+import AboutPage from "@/pages/shared/AboutPage";
+import FinanceRules from "@/pages/shared/FinanceRules";
+import AssetAllocationProjectionPage from "@/pages/analytics/AssetAllocationProjectionPage";
+import { BioLockProvider } from "@/contexts/bioLockContext";
+import { DashboardDataProvider } from "@/contexts/DashboardDataContext";
+import { ThemeProvider } from "@/contexts/themeContext";
+import BioLockScreen from "@/components/auth/BioLockScreen";
+import LiabilitiesPage from "@/pages/accounts/LiabilitiesPage";
+import UpcomingExpensesPage from "@/pages/transactions/UpcomingExpensesPage";
+import InsurancesPage from "@/pages/transactions/InsurancesPage";
 
 const routes: RouteObject[] = [
   {

@@ -1,5 +1,5 @@
 import Dexie, { Transaction } from "dexie";
-import { logInfo } from "@/shared/services/logger";
+import { logInfo } from "@/services/logger";
 
 export const CURRENT_DB_VERSION = 12;
 
