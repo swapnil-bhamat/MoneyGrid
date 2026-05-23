@@ -5,6 +5,87 @@ This file contains high-fidelity architectural memory and context for pair progr
 ## 🏗️ Project Architecture (Flattened & Simplified)
 To keep the codebase simple and highly scalable for new developers, we have replaced the dual `domains/` and `shared/` directory hierarchy with a consolidated, clean, role-based architecture. All source files now live directly under well-defined, single-purpose directories in `src/`:
 
+### 🏗️ Architecture Blueprint
+
+```mermaid
+flowchart TD
+    %% Custom Styles & Classes Definition
+    classDef presLayer fill:#e0f2fe,stroke:#0369a1,stroke-width:2px,color:#0369a1,font-weight:bold;
+    classDef svcLayer fill:#f0fdf4,stroke:#15803d,stroke-width:2px,color:#15803d,font-weight:bold;
+    classDef dbLayer fill:#fef3c7,stroke:#b45309,stroke-width:2px,color:#b45309,font-weight:bold;
+    classDef extLayer fill:#faf5ff,stroke:#6b21a8,stroke-width:2px,color:#6b21a8,font-weight:bold;
+    classDef userNode fill:#fff,stroke:#1e293b,stroke-width:2px,color:#1e293b,font-weight:bold;
+
+    User((👤 Active User)):::userNode
+
+    subgraph Presentation["🌐 PRESENTATION LAYER (React 19)"]
+        UI[App Shell Layout / Sidebar Nav]:::presLayer
+        AIChat[Gemini Advisor Chat Panel]:::presLayer
+        Pages["🗂️ Route Page Views (Flat Pages)
+        • Analytics (Dashboard, FIRE, SWP)
+        • Accounts (Holdings, Portfolio, REITs)
+        • Transactions (Income, Upcoming, Insurance)
+        • Budgets, Backups, Auth, Shared"]:::presLayer
+    end
+
+    subgraph Services["⚙️ BUSINESS & LOGIC SERVICES (Core Layer)"]
+        HistoryService[History Service: Multi-level Session Undo/Redo]:::svcLayer
+        BackupService[Drive Backup Service: Incremental Cloud Sync]:::svcLayer
+        CryptoService[Crypto Service: AES-256-GCM Web Crypto Security]:::svcLayer
+        MarketService[Market Data Service: Commodity Rates Cache]:::svcLayer
+        GeminiService[Gemini Assistant Service: Prompt Engineering]:::svcLayer
+    end
+
+    subgraph Persistence["💾 LOCAL STORAGE & PERSISTENCE (Offline-First)"]
+        DexieDB[("Dexie.js IndexedDB
+        • 19 Versioned Tables
+        • Schema Migrations v12")]:::dbLayer
+        LocalStorage[("Browser LocalStorage
+        • Theme preference cache
+        • daily commodity rates")]:::dbLayer
+    end
+
+    subgraph Cloud["☁️ SECURE CLOUD SERVICES (External)"]
+        GDrive["Google Drive API
+        • AppData Folder Storage
+        • OAuth Client Access"]:::extLayer
+        GeminiAPI["Google Gemini API
+        • Generative AI Models
+        • JSON Schema Responses"]:::extLayer
+        GoldAPI["GoldAPI.io
+        • Indian/International Rates
+        • Cached Responses"]:::extLayer
+    end
+
+    %% Flow lines mapping
+    User <-->|Interacts| UI
+    UI <-->|Navigates| Pages
+    UI <-->|Consults| AIChat
+
+    %% Page actions calling Services
+    Pages -->|History state| HistoryService
+    Pages -->|Real-time rates| MarketService
+    Pages -->|Settings / Sync| BackupService
+    AIChat -->|Conversations| GeminiService
+
+    %% Service connections to Persistence
+    HistoryService <-->|Undo/Redo Stack| DexieDB
+    MarketService <-->|Rates cache lookup| LocalStorage
+    BackupService <-->|Query and merge| DexieDB
+    BackupService -.->|Encrypt oauth keys| CryptoService
+    GeminiService -.->|Safe read-only context| DexieDB
+
+    %% Crypto security bindings
+    CryptoService <-->|Secure credentials storage| DexieDB
+
+    %% Cloud triggers
+    BackupService <-->|Incremental backup sync| GDrive
+    GeminiService <-->|Context-enriched analysis| GeminiAPI
+    MarketService <-->|Fetch fresh commodity rates| GoldAPI
+```
+
+### 📂 Directory Mapping
+
 - `src/app/`: Root application bootstrappers, providers, central routing configurations (`App.tsx`, `main.tsx`), and core integration tests (`__tests__/`).
 - `src/components/`: Reusable stand-alone UI elements and visual blocks, grouped logically by domain focus:
   - `common/`: Shared generic components (e.g., inputs, selectors, tables, confirmation modals, gauges, `CustomPieChart.tsx`).
