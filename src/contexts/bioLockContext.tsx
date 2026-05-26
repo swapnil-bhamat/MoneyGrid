@@ -79,7 +79,7 @@ export const BioLockProvider: React.FC<{ children: ReactNode }> = ({
       const publicKey: PublicKeyCredentialCreationOptions = {
         challenge,
         rp: {
-          name: "Personal Finance PWA",
+          name: "MoneyGrid",
           id: window.location.hostname,
         },
         user: {

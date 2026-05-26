@@ -66,7 +66,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [bootswatchTheme, setBootswatchThemeState] = useState<BootswatchTheme>(() => {
     const saved = localStorage.getItem(BOOTSWATCH_STORAGE_KEY) as BootswatchTheme | null;
-    return saved || "default";
+    return saved || "united";
   });
 
   const setBootswatchTheme = (newTheme: BootswatchTheme) => {

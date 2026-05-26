@@ -1,5 +1,5 @@
-# Personal Finance PWA
-
+# MoneyGrid
+ 
 A Progressive Web Application for personal finance management, built with React, TypeScript, and modern web technologies.
 
 ## 📸 Screenshots & Demo
@@ -16,13 +16,14 @@ A Progressive Web Application for personal finance management, built with React,
 
 ## 🌟 Features
 
-- 📱 **Progressive Web App (PWA)**: Installable on all devices with offline support.
-- 💰 **Financial Tracking**: Track income, expenses, assets, and liabilities.
-- 🔄 **Undo/Redo System**: Full session-based undo/redo history to prevent accidental data loss.
-- ☁️ **Smart Cloud Backups**:
-  - Integrated into Settings for easy management.
-  - **Versioned Backups**: Restore from any previous point in time.
-  - **Smart Change Detection**: Prevents redundant backups if data hasn't changed.
+- 📱 **Progressive Web App (PWA)**: Installable on all devices with full offline support.
+- 💾 **Offline-First & IndexedDB**: Instant client-side responsiveness powered by Dexie.js (IndexedDB). No mandatory auth gating; works entirely offline and seeds default values from `public/data.json`.
+- 🎨 **Dynamic Bootswatch Engine**: Switch between 25+ Bootswatch theme presets dynamically with the **United** theme loaded by default, featuring 100% flicker-free head reloading.
+- 🔄 **Undo/Redo System**: Full session-based multi-level undo/redo history to prevent accidental data loss.
+- ☁️ **Decoupled Google Drive Cloud Sync**:
+  - Optional, opt-in cloud backups accessible directly from the layout header sync button.
+  - **Smart Sync Merging**: Intelligent prompts when first logging in to either restore cloud backups or merge/upload current local changes.
+  - **Robust Error Bubbling**: Rethrown oauth/connection errors are handled by custom UI toasts to display descriptive error reasons (like missing `VITE_GOOGLE_CLIENT_ID`) instead of false success messages.
 - 🤖 **AI Assistant**: Built-in chatbot powered by Google Gemini to analyze your finances.
   - **Natural Language Queries**: Ask questions about your net worth, spending, etc.
   - **Image Rendering**: View AI-generated images directly in the chat.
@@ -37,7 +38,6 @@ A Progressive Web Application for personal finance management, built with React,
   - **Commodity Rates**: Live Gold (10g) and Silver (1kg) rates (powered by GoldAPI, cached daily).
 - 📊 **Analytics**: Visual analytics and reports using Recharts.
 - 🔒 **Security**: Biometric app lock and local data encryption.
-- 🔄 **Real-time Sync**: Seamless data synchronization across devices.
 - 📱 **Responsive Design**: Optimized for mobile, tablet, and desktop.
 - 📈 **Projections**: Advanced financial projection tools (Retirement, Net Worth).
 

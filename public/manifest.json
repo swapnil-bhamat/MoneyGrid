@@ -1,7 +1,7 @@
 {
-  "name": "Personal Finance Management",
-  "short_name": "Personal Finance",
-  "description": "Personal Finance Management Application",
+  "name": "MoneyGrid",
+  "short_name": "MoneyGrid",
+  "description": "MoneyGrid Personal Finance Management Application",
   "start_url": "/",
   "orientation": "portrait",
   "display": "standalone",

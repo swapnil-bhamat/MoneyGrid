@@ -1,4 +1,4 @@
-# 🧠 Antigravity (PWA Finance Elite SE Agent Context)
+# 🧠 MoneyGrid (PWA Finance Elite SE Agent Context)
 
 This file contains high-fidelity architectural memory, context, and developer protocols for pair programming. When a user tags this file, the agent instantly assumes the persona and responsibility of an **Elite Lead Software Engineer** and executes according to the strict guidelines below.
 
@@ -156,9 +156,9 @@ The app uses IndexedDB via Dexie.js (Current Schema Version: **12**). Key tables
 ## 🎨 Dynamic Bootswatch Theme Engine & Contrast Guidelines
 1. **Dynamic CDN Theme Swapping**:
    - Replaced heavy local Bootstrap compilation with a single `<link id="bootswatch-theme">` tag inside `index.html`.
-   - The React `ThemeProvider` (`src/contexts/themeContext.tsx`) dynamically updates this link's `href` to fetch any of the 25+ Bootswatch theme presets natively from the jsDelivr CDN.
+   - The React `ThemeProvider` (`src/contexts/themeContext.tsx`) dynamically updates this link's `href` to fetch any of the 25+ Bootswatch theme presets natively from the jsDelivr CDN. By default, it loads the **United** theme when no user preference is cached.
 2. **Zero-Flash Head Restoring Script**:
-   - An inline blocking script inside `<head>` reads `bootswatch_theme` from `localStorage` and swaps the CSS link *synchronously* before DOM parsing begins.
+   - An inline blocking script inside `<head>` reads `bootswatch_theme` (defaulting to `"united"`) from `localStorage` and swaps the CSS link *synchronously* before DOM parsing begins.
    - It also applies the correct `data-bs-theme` (dark or light) attribute to `document.documentElement` immediately, ensuring a 100% glitch-free reload experience.
 3. **High-Contrast Typography & Container Mappings**:
    - Mapped dynamic row and card classes (`.dynamic-bg-1` to `.dynamic-bg-8`) to dynamic background subtle and text emphasis variables:
@@ -173,6 +173,19 @@ The app uses IndexedDB via Dexie.js (Current Schema Version: **12**). Key tables
 2. **Secrets Encryption (`src/utils/encryption.ts`)**:
    - Encrypts third-party config credentials (e.g., `GOLD_API_KEY`, Google Drive oauth tokens) inside IndexedDB using a derived key.
    - Utilizes PBKDF2 for key derivation and AES-256-GCM from Web Crypto API for secure hardware-accelerated encryption.
+
+## ☁️ Decoupled Offline-First & Optional Cloud Sync
+1. **Local-First Accessibility**:
+   - Blocking authentication screens have been completely removed. The user has instant, unrestricted access to MoneyGrid on startup using IndexedDB (Dexie.js).
+   - If the local database is fresh and empty, it seeds itself offline directly from `public/data.json` without requiring an internet connection.
+2. **Opt-In Sync & Smart Merging**:
+   - Users can sync their data at any time using the Google Drive icon (`DriveSyncButton`) in the layout header.
+   - When connecting a Google Account after local changes have been made, MoneyGrid checks for existing cloud backups:
+     - **Restore**: Replace local data with cloud version.
+     - **Upload/Merge**: Overwrite the cloud database with the current offline local state.
+3. **Rethrown Errors & Visual Toasts**:
+   - Sync authentication, missing `VITE_GOOGLE_CLIENT_ID`, and network errors inside `handleSignIn` are correctly rethrown/bubbled up to callers.
+   - The header `DriveSyncButton` catches these errors and renders contextual error toasts displaying the specific error message rather than a false success confirmation.
 
 ## 🔌 Core Integrations
 - **Google Drive API**: Client-side versioned backup flow, performing automated background incremental JSON synchronization.

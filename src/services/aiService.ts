@@ -31,7 +31,7 @@ const getSystemInstruction = (permissions: { read: boolean; write: boolean; upda
 
   return {
     role: "system",
-    parts: [{ text: `You are a helpful personal finance assistant integrated into a PWA. 
+    parts: [{ text: `You are a helpful personal finance assistant integrated into MoneyGrid (a personal finance PWA). 
     You have access to a clean, summarized financial profile of the user's local database.
     
     Your capabilities:
