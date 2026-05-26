@@ -50,16 +50,12 @@ export default function Layout() {
   const menuItems: MenuItem[] = [
     { text: "Dashboard", path: "/dashboard", icon: <BsSpeedometer /> },
     {
-      text: "Planning",
-      icon: <BsJournalText />,
+      text: "Cash Flow",
+      icon: <BsWallet2 />,
       items: [
-        { text: "FIRE", path: "/fire", icon: <FaFireFlameCurved /> },
-        { text: "Goals", path: "/goals", icon: <GoGoal /> },
-        {
-          text: "Networth Projection",
-          path: "/networth-projection",
-          icon: <BsGraphUp />,
-        },
+        { text: "Income", path: "/income", icon: <GiReceiveMoney /> },
+        { text: "Monthly Cash Flow", path: "/cash-flow", icon: <TiFlowMerge /> },
+        { text: "Upcoming Expenses", path: "/upcoming-expenses", icon: <BsCalendarCheck /> },
       ],
     },
     {
@@ -72,12 +68,16 @@ export default function Layout() {
       ],
     },
     {
-      text: "Cash Flow",
-      icon: <BsWallet2 />,
+      text: "Planning",
+      icon: <BsJournalText />,
       items: [
-        { text: "Income", path: "/income", icon: <GiReceiveMoney /> },
-        { text: "Upcoming Expenses", path: "/upcoming-expenses", icon: <BsCalendarCheck /> },
-        { text: "Monthly Cash Flow", path: "/cash-flow", icon: <TiFlowMerge /> },
+        { text: "FIRE", path: "/fire", icon: <FaFireFlameCurved /> },
+        { text: "Goals", path: "/goals", icon: <GoGoal /> },
+        {
+          text: "Networth Projection",
+          path: "/networth-projection",
+          icon: <BsGraphUp />,
+        },
       ],
     },
     {
