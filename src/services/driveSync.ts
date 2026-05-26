@@ -38,11 +38,16 @@ export async function initializeFromDrive(
       const initialData = await response.json();
       logInfo("Successfully loaded initial data:", initialData);
 
-      // Create initial data in Google Drive
-      logInfo("Uploading initial data to Google Drive...");
-      await uploadJsonFile(initialData, DATA_FILE_NAME);
+      // Create initial data in Google Drive if authenticated
+      try {
+        logInfo("Uploading initial data to Google Drive...");
+        await uploadJsonFile(initialData, DATA_FILE_NAME);
+        logInfo("Successfully uploaded initial data to Google Drive");
+      } catch (uploadError) {
+        logInfo("Skipping Google Drive upload during initialization (not authenticated or offline):", { uploadError });
+      }
       logInfo(
-        "Successfully uploaded to Google Drive, now importing to IndexedDB..."
+        "Importing default data into IndexedDB..."
       );
       await importDataToIndexedDB(initialData);
       logInfo("Created new data file in Google Drive with default data");

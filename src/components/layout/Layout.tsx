@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, Navigate } from "react-router-dom";
-import { Accordion, Form, Modal, Spinner } from "react-bootstrap";
+import { Accordion, Spinner } from "react-bootstrap";
 import "./Layout.scss";
 import { Link, Outlet } from "react-router-dom";
 import { Nav, Offcanvas, Button, Image } from "react-bootstrap";
@@ -9,7 +9,6 @@ import {
   BsGraphUp,
   BsGear,
   BsBoxArrowRight,
-  BsGoogle,
   BsList,
   BsCalendarCheck,
   BsShieldCheck,
@@ -45,7 +44,7 @@ export default function Layout() {
   const handleClose = () => setShowSidebar(false);
   const handleShow = () => setShowSidebar(true);
 
-  const { user, authState, handleSignIn, handleSignOut } = useAuth();
+  const { user, authState, handleSignOut } = useAuth();
 
 
   const menuItems: MenuItem[] = [
@@ -324,44 +323,6 @@ export default function Layout() {
         </div>
       )}
       {authState === "signedIn" && user && <ChatWidget />}
-      <Modal
-        show={authState === "signedOut" || !user}
-        backdrop="static"
-        centered
-        keyboard={false}
-      >
-        <Form>
-          <Modal.Header className="border-0">
-            <Modal.Title className="fw-bold text-center w-100">
-              🔒 Authentication Required
-            </Modal.Title>
-          </Modal.Header>
-
-          <Modal.Body className="text-center">
-            <p className="mb-3">
-              To continue using your <strong>Personal Finance App</strong>,
-              please sign in securely with your Google account.
-            </p>
-            <p className="text-body-secondary small mb-4">
-              We’ll only request the minimum access needed to store and sync
-              your data safely in Google Drive. Your information remains private
-              and secure in your drive only.
-            </p>
-
-            <Button
-              variant="outline-primary"
-              size="lg"
-              onClick={(e) => {
-                e.preventDefault();
-                handleSignIn();
-              }}
-              className="d-flex align-items-center justify-content-center gap-2 w-100 fw-semibold py-2"
-            >
-              <BsGoogle size={20} /> Sign in with Google Drive
-            </Button>
-          </Modal.Body>
-        </Form>
-      </Modal>
     </div>
   );
 }

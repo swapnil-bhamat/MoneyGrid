@@ -1,6 +1,6 @@
 // Service Worker version - increment this when you push updates
 const CACHE_VERSION = "v1.0.2";
-const CACHE_NAME = `personal-finance-${CACHE_VERSION}`;
+const CACHE_NAME = `moneygrid-${CACHE_VERSION}`;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -30,7 +30,7 @@ self.addEventListener("activate", (event) => {
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames
-            .filter((name) => name.startsWith("personal-finance-"))
+            .filter((name) => name.startsWith("moneygrid-"))
             .filter((name) => name !== CACHE_NAME)
             .map((name) => caches.delete(name))
         );
@@ -68,7 +68,7 @@ async function syncData() {
     });
 
     // Show notification when sync is complete
-    await self.registration.showNotification("Personal Finance", {
+    await self.registration.showNotification("MoneyGrid", {
       body: "Your financial data has been updated",
       icon: "/android/android-launchericon-192-192.png",
       badge: "/android/android-launchericon-96-96.png",
@@ -107,6 +107,6 @@ self.addEventListener("push", (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification("Personal Finance", options)
+    self.registration.showNotification("MoneyGrid", options)
   );
 });

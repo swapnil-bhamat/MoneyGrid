@@ -23,9 +23,9 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // ✅ allow up to 10 MB
         },
         manifest: {
-          name: "Personal Finance Management",
-          short_name: "Personal Finance",
-          description: "Personal Finance Management Application",
+          name: "MoneyGrid",
+          short_name: "MoneyGrid",
+          description: "MoneyGrid Personal Finance Management Application",
           start_url: "/",
           display: "standalone",
           background_color: "#000000",
