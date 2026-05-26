@@ -1,10 +1,10 @@
 # MoneyGrid
- 
+
 A Progressive Web Application for personal finance management, built with React, TypeScript, and modern web technologies.
 
 ## 📸 Screenshots & Demo
 
-**Live Demo:** [https://personal-finance-pwa.netlify.app/](https://personal-finance-pwa.netlify.app/)
+**Live Demo:** [https://moneygrid.netlify.app](https://moneygrid.netlify.app/)
 
 ### Desktop View
 
@@ -89,7 +89,7 @@ graph TD
     BackupService <--> DexieDB
     BackupService --> CryptoService
     GeminiService -.-> DexieDB
-    
+
     %% Crypto Service working with Dexie
     CryptoService <--> DexieDB
 
@@ -152,8 +152,8 @@ src/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/swapnil-bhamat/Personal-Finance-PWA.git
-cd Personal-Finance-PWA
+git clone https://github.com/swapnil-bhamat/MoneyGrid.git
+cd MoneyGrid
 ```
 
 2. **Configure Environment Variables:**
@@ -197,6 +197,7 @@ npm run dev
 ## 🎨 Design System
 
 The application features a modern, elite **Bootswatch Theme Engine** built directly on top of **Bootstrap 5** and **React Bootstrap**:
+
 - **Dynamic 25+ Preset Themes**: Users can instantly skin the entire interface using a curated list of Bootswatch presets loaded dynamically from jsDelivr CDN.
 - **Zero-Flash Pre-Loading**: A synchronous inline head script restores the saved theme instantly from `localStorage` upon reload, preventing any flash-of-unstyled-content (FOUC).
 - **Theme-Agnostic High Legibility**: Category cards, row sub-palettes, and sidebars utilize high-contrast native text-emphasis variables (`var(--bs-primary-text-emphasis)`) and theme-compliant layouts. Standard container styling uses `bg-body-secondary` to guarantee readable typography in both light and dark modes.
