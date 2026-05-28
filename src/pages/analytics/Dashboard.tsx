@@ -31,6 +31,7 @@ export default function Dashboard() {
     assetClassColors,
     assetGoalColors,
     savingsColors,
+    incomeColors,
     assetAllocationByBucket,
     goalProgress,
     projectedAssetGrowth,
@@ -162,10 +163,10 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {incomeAllocation.map((_, index) => (
+                        {incomeAllocation.map((entry, index) => (
                           <Cell
                             key={`cell-income-${index}`}
-                            fill={assetGoalColors[index % assetGoalColors.length]}
+                            fill={entry.color || incomeColors[index % incomeColors.length]}
                           />
                         ))}
                       </Pie>
@@ -289,10 +290,10 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {savingsCashFlow.map((_, index) => (
+                        {savingsCashFlow.map((entry, index) => (
                           <Cell
                             key={`cell-savings-${index}`}
-                            fill={savingsColors[index % savingsColors.length]}
+                            fill={entry.color || savingsColors[index % savingsColors.length]}
                           />
                         ))}
                       </Pie>
@@ -325,11 +326,11 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {assetAllocationByBucket.map((_, index) => (
+                        {assetAllocationByBucket.map((entry, index) => (
                           <Cell
                             key={`cell-savings-${index}`}
                             fill={
-                              assetClassColors[index % assetClassColors.length]
+                              entry.color || assetClassColors[index % assetClassColors.length]
                             }
                           />
                         ))}
@@ -363,11 +364,11 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {assetAllocationByGoal.map((_, index) => (
+                        {assetAllocationByGoal.map((entry, index) => (
                           <Cell
                             key={`cell-goal-${index}`}
                             fill={
-                              assetGoalColors[index % assetGoalColors.length]
+                              entry.color || assetGoalColors[index % assetGoalColors.length]
                             }
                           />
                         ))}

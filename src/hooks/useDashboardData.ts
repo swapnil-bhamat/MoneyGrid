@@ -5,6 +5,7 @@ import { calculateProjectedValue } from "@/services/projectionService";
 import { calculateRemainingBalance, calculateEMI } from "@/utils/financialUtils";
 import { t } from "@/utils/localization";
 import { FINANCIAL_CATEGORIES, BUDGET_RULES } from "@/utils/constants";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
 
 const capitalize = (str: string): string => {
   if (!str) return "";
@@ -20,28 +21,38 @@ const getGoalAllocationByName = (
     .reduce((sum, goal) => sum + goal.allocatedAmount, 0);
 
 const assetClassColors = [
-  "#2ecc71",
-  "#e74c3c",
-  "#f1c40f",
-  "#3498db",
-  "#9b59b6",
-  "#34495e",
+  "#4361ee", // Indigo Blue
+  "#2ec4b6", // Mint Teal
+  "#ff9f1c", // Tangerine Orange
+  "#e63946", // Coral Red
+  "#7209b7", // Royal Purple
+  "#ffd166", // Lemon Yellow
 ];
 const assetGoalColors = [
-  "#8e44ad",
-  "#16a085",
-  "#d35400",
-  "#c0392b",
-  "#27ae60",
-  "#2980b9",
+  "#7209b7", // Royal Purple
+  "#2ec4b6", // Mint Teal
+  "#ff9f1c", // Tangerine Orange
+  "#e63946", // Coral Red
+  "#ffd166", // Lemon Yellow
+  "#4361ee", // Indigo Blue
 ];
 const savingsColors = [
-  "#f39c12",
-  "#1abc9c",
-  "#e67e22",
-  "#7f8c8d",
-  "#bdc3c7",
-  "#2c3e50",
+  "#ff9f1c", // Tangerine Orange
+  "#00b4d8", // Sky Cyan
+  "#ff006e", // Hot Pink
+  "#2ec4b6", // Mint Teal
+  "#7209b7", // Royal Purple
+  "#ffd166", // Lemon Yellow
+];
+const incomeColors = [
+  "#2ec4b6", // Mint Teal
+  "#4361ee", // Indigo Blue
+  "#7209b7", // Royal Purple
+  "#ff9f1c", // Tangerine Orange
+  "#ffd166", // Lemon Yellow
+  "#ff006e", // Hot Pink
+  "#e63946", // Coral Red
+  "#00b4d8", // Sky Cyan
 ];
 
 export function useDashboardData() {
@@ -249,14 +260,26 @@ export function useDashboardData() {
       }
     });
 
+    const usedClassColors = new Set<string>();
     const assetClassAllocation = assetClasses
       .filter((ac) => classAllocationMap[ac.id] > 0)
-      .map((ac) => ({
-        id: ac.id,
-        label: ac.name,
-        value: classAllocationMap[ac.id],
-        color: assetClassColors[assetClasses.indexOf(ac) % assetClassColors.length]
-      }));
+      .map((ac, index) => {
+        const details = getKeywordDetails(ac.name);
+        let color = (details && details.icon !== "🏷️") ? details.hex : "";
+        if (!color || usedClassColors.has(color)) {
+          color = assetClassColors[index % assetClassColors.length];
+          // Try to get a unique color from the palette if available
+          const unique = assetClassColors.find(c => !usedClassColors.has(c));
+          if (unique) color = unique;
+        }
+        usedClassColors.add(color);
+        return {
+          id: ac.id,
+          label: ac.name,
+          value: classAllocationMap[ac.id],
+          color
+        };
+      });
 
     // 6. Calculate asset allocation by goal
     const goalAllocationMap: Record<number, number> = {};
@@ -267,13 +290,26 @@ export function useDashboardData() {
       }
     });
 
+    const usedGoalColors = new Set<string>();
     const assetAllocationByGoal = goals
       .filter((goal) => goalAllocationMap[goal.id] > 0)
-      .map((goal) => ({
-        id: goal.id,
-        label: goal.name,
-        value: goalAllocationMap[goal.id],
-      }));
+      .map((goal, index) => {
+        const details = getKeywordDetails(goal.name);
+        let color = (details && details.icon !== "🏷️") ? details.hex : "";
+        if (!color || usedGoalColors.has(color)) {
+          color = assetGoalColors[index % assetGoalColors.length];
+          // Try to get a unique color from the palette if available
+          const unique = assetGoalColors.find(c => !usedGoalColors.has(c));
+          if (unique) color = unique;
+        }
+        usedGoalColors.add(color);
+        return {
+          id: goal.id,
+          label: goal.name,
+          value: goalAllocationMap[goal.id],
+          color
+        };
+      });
 
     // 7. Calculate asset allocation by bucket
     const bucketAllocationMap: Record<number, number> = {};
@@ -284,13 +320,26 @@ export function useDashboardData() {
       }
     });
 
+    const usedBucketColors = new Set<string>();
     const assetAllocationByBucket = buckets
       .filter((bucket) => bucketAllocationMap[bucket.id] > 0)
-      .map((bucket) => ({
-        id: bucket.id,
-        label: bucket.name,
-        value: bucketAllocationMap[bucket.id],
-      }));
+      .map((bucket, index) => {
+        const details = getKeywordDetails(bucket.name);
+        let color = (details && details.icon !== "🏷️") ? details.hex : "";
+        if (!color || usedBucketColors.has(color)) {
+          color = assetClassColors[index % assetClassColors.length];
+          // Try to get a unique color from the palette if available
+          const unique = assetClassColors.find(c => !usedBucketColors.has(c));
+          if (unique) color = unique;
+        }
+        usedBucketColors.add(color);
+        return {
+          id: bucket.id,
+          label: bucket.name,
+          value: bucketAllocationMap[bucket.id],
+          color
+        };
+      });
 
     // 8. Calculate savings cash flow
     const savingsPurposeIds = purposes
@@ -315,11 +364,24 @@ export function useDashboardData() {
       groupedSavings[label] = (groupedSavings[label] || 0) + flow.monthly;
     });
 
-    const savingsCashFlow = Object.entries(groupedSavings).map(([label, total]) => ({
-      id: label,
-      label,
-      value: total,
-    }));
+    const usedSavingsColors = new Set<string>();
+    const savingsCashFlow = Object.entries(groupedSavings).map(([label, total], index) => {
+      const details = getKeywordDetails(label);
+      let color = (details && details.icon !== "🏷️") ? details.hex : "";
+      if (!color || usedSavingsColors.has(color)) {
+        color = savingsColors[index % savingsColors.length];
+        // Try to get a unique color from the palette if available
+        const unique = savingsColors.find(c => !usedSavingsColors.has(c));
+        if (unique) color = unique;
+      }
+      usedSavingsColors.add(color);
+      return {
+        id: label,
+        label,
+        value: total,
+        color
+      };
+    });
 
     // 9. Card data
     const cardData = [
@@ -406,21 +468,36 @@ export function useDashboardData() {
 
     const projectedAssetGrowth = Object.values(projectedMap)
       .filter((item) => item.currentValue > 0 || item.value > 0)
-      .map((item) => ({
-        ...item,
-        color: assetClassColors[assetClasses.findIndex((ac) => ac.id === item.id) % assetClassColors.length]
-      }))
+      .map((item) => {
+        const matchingClass = assetClassAllocation.find((ac) => ac.id === item.id);
+        const color = matchingClass?.color || assetClassColors[assetClasses.findIndex((ac) => ac.id === item.id) % assetClassColors.length];
+        return {
+          ...item,
+          color
+        };
+      })
       .sort((a, b) => b.value - a.value);
 
     // 12. Income allocation by source
+    const usedIncomeColors = new Set<string>();
     const incomeAllocation = incomes
-      .map((inc) => {
+      .map((inc, index) => {
         const holder = holders.find((h) => h.id === inc.holders_id);
         const label = inc.item || holder?.name || "Other Income";
+        const details = getKeywordDetails(label);
+        let color = (details && details.icon !== "🏷️") ? details.hex : "";
+        if (!color || usedIncomeColors.has(color)) {
+          color = incomeColors[index % incomeColors.length];
+          // Try to get a unique color from the palette if available
+          const unique = incomeColors.find(c => !usedIncomeColors.has(c));
+          if (unique) color = unique;
+        }
+        usedIncomeColors.add(color);
         return {
           id: String(inc.id),
           label,
           value: Number(inc.monthly),
+          color
         };
       })
       .filter((item) => item.value > 0);
@@ -487,5 +564,6 @@ export function useDashboardData() {
     assetClassColors,
     assetGoalColors,
     savingsColors,
+    incomeColors,
   };
 }
