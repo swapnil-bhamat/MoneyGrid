@@ -9,6 +9,7 @@ import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
 
 import { fetchGoldData } from "@/services/marketData";
 
@@ -323,9 +324,10 @@ export default function AssetsHoldingsPage() {
       data={[...assetsHoldings].sort((a, b) => (a.assetClasses_id || 0) - (b.assetClasses_id || 0))}
       groupBy={(item) => {
         const name = getAssetClassName(item.assetClasses_id);
+        const details = getKeywordDetails(name);
         return {
           key: String(item.assetClasses_id),
-          label: name || "Unknown Class"
+          label: name ? `${details.icon} ${name}` : "Unknown Class"
         };
       }}
       groupSort={(a, b) => Number(a) - Number(b)}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, Form, Row, Col, InputGroup } from "react-bootstrap";
 import { REIT } from "@/data/reitData";
-import { toLocalCurrency } from "@/utils/numberUtils";
+import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
 
 interface REITCardProps {
   reit: REIT;
@@ -13,6 +13,7 @@ export default function REITCard({ reit, investmentAmount, onUpdate }: REITCardP
   const [localYield, setLocalYield] = useState(reit.calculatedYield);
   const [localPrice, setLocalPrice] = useState(reit.currentPrice);
   const [localWale, setLocalWale] = useState(reit.wale);
+  const currency = getActiveCurrency();
 
   useEffect(() => {
     setLocalYield(reit.calculatedYield);
@@ -52,7 +53,7 @@ export default function REITCard({ reit, investmentAmount, onUpdate }: REITCardP
             <Form.Group>
               <Form.Label className="small text-muted mb-1">Current Price</Form.Label>
               <InputGroup size="sm">
-                <InputGroup.Text>₹</InputGroup.Text>
+                <InputGroup.Text>{currency.symbol}</InputGroup.Text>
                 <Form.Control
                   type="number"
                   value={localPrice}

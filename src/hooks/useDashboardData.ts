@@ -391,7 +391,20 @@ export function useDashboardData() {
       }))
       .sort((a, b) => b.value - a.value);
 
-    // 12. Financial Freedom Metrics
+    // 12. Income allocation by source
+    const incomeAllocation = incomes
+      .map((inc) => {
+        const holder = holders.find((h) => h.id === inc.holders_id);
+        const label = inc.item || holder?.name || "Other Income";
+        return {
+          id: String(inc.id),
+          label,
+          value: Number(inc.monthly),
+        };
+      })
+      .filter((item) => item.value > 0);
+
+    // 13. Financial Freedom Metrics
     const financialFreedomMetrics = {
       income: totalIncome,
       assets: totalAssets,
@@ -415,6 +428,7 @@ export function useDashboardData() {
       goalProgress,
       projectedAssetGrowth,
       financialFreedomMetrics,
+      incomeAllocation,
     };
   });
 
@@ -434,6 +448,7 @@ export function useDashboardData() {
     assetAllocationByBucket: [],
     goalProgress: [],
     projectedAssetGrowth: [],
+    incomeAllocation: [],
     financialFreedomMetrics: {
       income: 0,
       assets: 0,

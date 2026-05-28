@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { toLocalCurrency } from "@/utils/numberUtils";
+import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
 
 interface ChartData {
   year: number;
@@ -65,10 +65,22 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 tick={{ fill: "#666" }}
               />
               <YAxis
-                tickFormatter={(value) => `₹${value / 100000}L`}
+                tickFormatter={(value) => {
+                  const currency = getActiveCurrency();
+                  if (currency.code === "INR") {
+                    return `₹${value / 100000}L`;
+                  }
+                  if (value >= 1000000) {
+                    return `${currency.symbol}${(value / 1000000).toFixed(1)}M`;
+                  }
+                  if (value >= 1000) {
+                    return `${currency.symbol}${(value / 1000).toFixed(0)}K`;
+                  }
+                  return `${currency.symbol}${value}`;
+                }}
                 style={{ fontSize: window.innerWidth < 768 ? "11px" : "13px" }}
                 tick={{ fill: "#666" }}
-                width={window.innerWidth < 768 ? 50 : 60}
+                width={window.innerWidth < 768 ? 55 : 65}
               />
               <Tooltip
                 content={({ active, payload, label }: any) => {

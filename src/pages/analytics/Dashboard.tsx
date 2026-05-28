@@ -33,6 +33,7 @@ export default function Dashboard() {
     assetAllocationByBucket,
     goalProgress,
     projectedAssetGrowth,
+    incomeAllocation,
   } = useSharedDashboardData();
 
   const isMobile = useMobile();
@@ -166,6 +167,42 @@ export default function Dashboard() {
         </Row>
         {/* Pie Charts */}
         <Row>
+          <Col md={4}>
+            {incomeAllocation && incomeAllocation.length > 0 && (
+              <Card className="mb-4 shadow">
+                <Card.Header as="h6">Income Breakdown</Card.Header>
+                <Card.Body style={{ height: 350 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={incomeAllocation}
+                        dataKey="value"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                      >
+                        {incomeAllocation.map((_, index) => (
+                          <Cell
+                            key={`cell-income-${index}`}
+                            fill={assetGoalColors[index % assetGoalColors.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number | undefined) =>
+                          toLocalCurrency(value)
+                        }
+                      />
+                      {!isMobile && <Legend />}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            )}
+          </Col>
           <Col md={4}>
             {savingsCashFlow.length > 0 && (
               <Card className="mb-4 shadow">

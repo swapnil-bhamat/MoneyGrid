@@ -1,6 +1,7 @@
 import { Table, Button } from "react-bootstrap";
 import { BsPencil, BsTrash } from "react-icons/bs";
 import { Column, BaseRecord } from "@/types/ui";
+import { getActiveCurrency } from "@/utils/numberUtils";
 
 interface DesktopTableViewProps<T extends BaseRecord> {
   data: T[];
@@ -24,6 +25,7 @@ export const DesktopTableView = <T extends BaseRecord>({
   showOnMobile = false,
 }: DesktopTableViewProps<T>) => {
   const showActions = onEdit || onDelete || renderActions;
+  const currency = getActiveCurrency();
 
   return (
     <div className={`${showOnMobile ? "" : "d-none d-lg-block"} p-3`}>
@@ -62,7 +64,7 @@ export const DesktopTableView = <T extends BaseRecord>({
                     ? column.renderCell(item)
                     : String(item[column.field]) || "-";
                   const isCurrency =
-                    typeof cellValue === "string" && cellValue.includes("₹");
+                    typeof cellValue === "string" && cellValue.includes(currency.symbol);
 
                   return (
                     <td
