@@ -34,7 +34,7 @@ export function register(config?: Config) {
     }
 
     window.addEventListener("load", () => {
-      const swUrl = `${import.meta.env.BASE_URL}service-worker.js`;
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
 
       if (isLocalhost) {
         // This is running on localhost. Let's check if a service worker still exists or not.
@@ -122,28 +122,7 @@ function registerValidSW(swUrl: string, config?: Config) {
                 });
               }
 
-              // Create update UI element
-              const updateDiv = document.createElement("div");
-              updateDiv.style.position = "fixed";
-              updateDiv.style.bottom = "20px";
-              updateDiv.style.left = "50%";
-              updateDiv.style.transform = "translateX(-50%)";
-              updateDiv.style.backgroundColor = "#4CAF50";
-              updateDiv.style.color = "white";
-              updateDiv.style.padding = "16px";
-              updateDiv.style.borderRadius = "8px";
-              updateDiv.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-              updateDiv.style.zIndex = "9999";
-              updateDiv.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 16px;">
-                  <span>A new version is available!</span>
-                  <button onclick="window.location.reload()" 
-                    style="background: white; color: #4CAF50; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    Update Now
-                  </button>
-                </div>
-              `;
-              document.body.appendChild(updateDiv);
+              // Update notification handled natively by React UI in Layout and Settings.
 
               // Listen for skip waiting message and notifications
               navigator.serviceWorker.addEventListener("message", (event) => {
