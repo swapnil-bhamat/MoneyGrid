@@ -12,6 +12,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { FINANCIAL_CATEGORIES, BUDGET_RULES } from "@/utils/constants";
+
+const capitalize = (str: string): string => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 interface RuleVisualization {
   title: string;
@@ -28,12 +34,12 @@ const RULES: RuleVisualization[] = [
   {
     title: "50/30/20 Rule",
     description:
-      "A simple budgeting rule where 50% of income goes to needs, 30% to savings, and 20% to wants.",
+      `A simple budgeting rule where ${BUDGET_RULES.NEED_LIMIT}% of income goes to needs, ${BUDGET_RULES.SAVINGS_FLOOR}% to savings, and ${BUDGET_RULES.WANT_LIMIT}% to wants.`,
     visualization: "pie",
     data: [
-      { name: "Needs", value: 50 },
-      { name: "Savings", value: 30 },
-      { name: "Wants", value: 20 },
+      { name: capitalize(FINANCIAL_CATEGORIES.NEED) + "s", value: BUDGET_RULES.NEED_LIMIT },
+      { name: capitalize(FINANCIAL_CATEGORIES.SAVINGS), value: BUDGET_RULES.SAVINGS_FLOOR },
+      { name: capitalize(FINANCIAL_CATEGORIES.WANT) + "s", value: BUDGET_RULES.WANT_LIMIT },
     ],
     colors: ["#2ecc71", "#3498db", "#e74c3c"],
   },

@@ -5,6 +5,7 @@ import { FaGoogleDrive, FaCheckCircle, FaExclamationCircle } from "react-icons/f
 import { useAuth } from "@/hooks/useAuth";
 import { syncToDrive } from "@/services/driveSync";
 import { logError, logInfo } from "@/services/logger";
+import { t } from "@/utils/localization";
 
 type SyncStatus = "idle" | "syncing" | "success" | "error";
 
@@ -21,12 +22,12 @@ const DriveSyncButton: React.FC = () => {
       logInfo("User clicked sync while signed out. Triggering Google Drive sign-in.");
       try {
         await handleSignIn();
-        setToastMsg("✅ Successfully connected to Google Drive and synced!");
+        setToastMsg(t.driveSync.successConnect);
         setShowToast(true);
       } catch (error) {
         logError("Auth failed from sync button click:", { error });
         const errMsg = error instanceof Error ? error.message : String(error);
-        setToastMsg(`❌ Failed to connect to Google Drive: ${errMsg}`);
+        setToastMsg(`${t.driveSync.failConnect}${errMsg}`);
         setShowToast(true);
       }
       return;
@@ -38,12 +39,12 @@ const DriveSyncButton: React.FC = () => {
       await syncToDrive();
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2500);
-      setToastMsg("✅ Successfully synced local data to Google Drive");
+      setToastMsg(t.driveSync.successSync);
     } catch (error) {
       logError("Manual sync failed: " + String(error));
       setStatus("error");
       setTimeout(() => setStatus("idle"), 3000);
-      setToastMsg("❌ Failed to sync to Google Drive");
+      setToastMsg(t.driveSync.failSync);
     } finally {
       setShowToast(true);
     }
@@ -58,12 +59,12 @@ const DriveSyncButton: React.FC = () => {
   };
 
   const getButtonTitle = () => {
-    if (authState === "checking") return "Checking Google Drive connection...";
-    if (status === "syncing") return "Syncing with Google Drive...";
+    if (authState === "checking") return t.driveSync.checking;
+    if (status === "syncing") return t.driveSync.syncing;
     if (authState === "signedIn") {
-      return `Sync to Google Drive (Connected as ${user?.displayName || "User"})`;
+      return t.driveSync.connectedAs.replace("{name}", user?.displayName || "User");
     }
-    return "Connect Google Drive & Sync Local Data";
+    return t.driveSync.connectAndSync;
   };
 
   return (
@@ -80,30 +81,30 @@ const DriveSyncButton: React.FC = () => {
           <>
             <Spinner animation="border" size="sm" className="me-1" />
             <span className="d-none d-md-inline small">
-              {authState === "checking" ? "Connecting..." : "Syncing..."}
+              {authState === "checking" ? t.driveSync.connecting : t.driveSync.syncingShort}
             </span>
           </>
         ) : status === "success" ? (
           <>
             <FaCheckCircle className="fs-6" />
-            <span className="d-none d-md-inline small fw-medium">Synced</span>
+            <span className="d-none d-md-inline small fw-medium">{t.driveSync.synced}</span>
           </>
         ) : status === "error" ? (
           <>
             <FaExclamationCircle className="fs-6" />
-            <span className="d-none d-md-inline small fw-medium">Failed</span>
+            <span className="d-none d-md-inline small fw-medium">{t.driveSync.failed}</span>
           </>
         ) : (
           <>
             <FaGoogleDrive className={`fs-5 ${authState === "signedIn" ? "text-success" : "text-muted"}`} />
             <span className="d-none d-md-inline small fw-medium">
-              {authState === "signedIn" ? "Cloud Sync" : "Backup Setup"}
+              {authState === "signedIn" ? t.driveSync.cloudSync : t.driveSync.backupSetup}
             </span>
             {authState !== "signedIn" && (
               <span 
                 className="position-absolute top-0 start-100 translate-middle p-1 bg-warning border border-light rounded-circle" 
                 style={{ width: "8px", height: "8px" }}
-                title="Not connected to Cloud Sync"
+                title={t.driveSync.notConnectedTip}
               />
             )}
           </>
@@ -113,9 +114,9 @@ const DriveSyncButton: React.FC = () => {
       <ToastContainer position="bottom-end" className="p-3 position-fixed" style={{ zIndex: 9999, position: "fixed" }}>
         <Toast
           bg={
-            status === "success" || (authState === "signedIn" && toastMsg.includes("Successfully connected"))
+            status === "success" || toastMsg === t.driveSync.successConnect || toastMsg === t.driveSync.successSync
               ? "success"
-              : status === "error" || toastMsg.includes("Failed")
+              : status === "error" || toastMsg.startsWith(t.driveSync.failConnect) || toastMsg === t.driveSync.failSync
               ? "danger"
               : "secondary"
           }

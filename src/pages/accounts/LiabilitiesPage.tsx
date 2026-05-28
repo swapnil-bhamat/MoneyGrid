@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import type { Liability } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
+import { t } from "@/utils/localization";
 
 interface LiabilityFormProps {
   show: boolean;
@@ -62,12 +63,12 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Liability" : "Add Liability"}
+      title={item ? t.liabilities.editLiability : t.liabilities.addLiability}
       isValid={!!loanType_id && !!loanStartDate && totalMonths > 0}
     >
       <FormSelect
         controlId="formLiabilityLoanType"
-        label="Loan Type"
+        label={t.liabilities.loanType}
         value={loanType_id}
         onChange={(e) => setLoanTypeId(Number(e.target.value))}
         options={loanTypes.map((t) => ({
@@ -77,7 +78,7 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
         defaultText="Select Loan Type"
       />
       <Form.Group className="mb-3" controlId="formLiabilityLoanAmount">
-        <Form.Label>Loan Amount</Form.Label>
+        <Form.Label>{t.liabilities.loanAmount}</Form.Label>
         <AmountInput
           value={loanAmount}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -86,7 +87,7 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formLiabilityLoanStartDate">
-        <Form.Label>Loan Start Date</Form.Label>
+        <Form.Label>{t.liabilities.startDate}</Form.Label>
         <Form.Control
           type="date"
           value={convertToDateInputFormat(loanStartDate)}
@@ -97,7 +98,7 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formLiabilityTotalMonths">
-        <Form.Label>Total Months</Form.Label>
+        <Form.Label>{t.liabilities.durationMonths}</Form.Label>
         <Form.Control
           type="number"
           value={totalMonths}
@@ -138,7 +139,7 @@ export default function LiabilitiesPage() {
 
   return (
     <BasePage<Liability>
-      title="Liabilities"
+      title={t.liabilities.title}
       data={[...liabilities].sort((a, b) => (a.loanType_id || 0) - (b.loanType_id || 0))}
       groupBy={(item) => {
         const name = getLoanTypeName(item.loanType_id);
@@ -152,12 +153,12 @@ export default function LiabilitiesPage() {
       columns={[
         {
           field: "loanAmount",
-          headerName: "Loan Amount",
+          headerName: t.liabilities.loanAmount,
           renderCell: (item) => toLocalCurrency(item.loanAmount),
         },
         {
           field: "balance" as keyof Liability, // Virtual field
-          headerName: "Current Balance",
+          headerName: t.liabilities.outstandingBalance,
           renderCell: (item) => {
             const rate = getLoanInterestRate(item.loanType_id);
             const balance = calculateRemainingBalance(
@@ -171,7 +172,7 @@ export default function LiabilitiesPage() {
         },
         {
           field: "emi" as keyof Liability, // Virtual field
-          headerName: "EMI",
+          headerName: t.liabilities.emi,
           renderCell: (item) => {
             const rate = getLoanInterestRate(item.loanType_id);
             const emi = calculateEMI(item.loanAmount, rate, item.totalMonths);
@@ -180,12 +181,12 @@ export default function LiabilitiesPage() {
         },
         {
           field: "loanStartDate",
-          headerName: "Start Date",
+          headerName: t.liabilities.startDate,
           renderCell: (item) => item.loanStartDate || "-",
         },
         {
           field: "totalMonths",
-          headerName: "Tenure (Months)",
+          headerName: t.liabilities.durationMonths,
           renderCell: (item) => item.totalMonths || "-",
         },
       ]}

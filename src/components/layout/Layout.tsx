@@ -31,6 +31,7 @@ import ChatWidget from "@/components/ai/ChatWidget";
 import UndoRedoControls from "./UndoRedoControls";
 import { IoBookSharp } from "react-icons/io5";
 import { usePwaUpdate } from "@/hooks/usePwaUpdate";
+import { t } from "@/utils/localization";
 
 type MenuItem = {
   text: string;
@@ -50,46 +51,46 @@ export default function Layout() {
 
 
   const menuItems: MenuItem[] = [
-    { text: "Dashboard", path: "/dashboard", icon: <BsSpeedometer /> },
+    { text: t.nav.dashboard, path: "/dashboard", icon: <BsSpeedometer /> },
     {
-      text: "Cash Flow",
+      text: t.nav.cashFlow,
       icon: <BsWallet2 />,
       items: [
-        { text: "Income", path: "/income", icon: <GiReceiveMoney /> },
-        { text: "Monthly Cash Flow", path: "/cash-flow", icon: <TiFlowMerge /> },
-        { text: "Upcoming Expenses", path: "/upcoming-expenses", icon: <BsCalendarCheck /> },
+        { text: t.nav.income, path: "/income", icon: <GiReceiveMoney /> },
+        { text: t.nav.monthlyCashFlow, path: "/cash-flow", icon: <TiFlowMerge /> },
+        { text: t.nav.upcomingExpenses, path: "/upcoming-expenses", icon: <BsCalendarCheck /> },
       ],
     },
     {
-      text: "Portfolio",
+      text: t.nav.portfolio,
       icon: <BsFillGridFill />,
       items: [
-        { text: "Assets", path: "/assets-holdings", icon: <GiCash /> },
-        { text: "Liabilities", path: "/liabilities", icon: <GiPayMoney /> },
-        { text: "Insurances", path: "/insurances", icon: <BsShieldCheck /> },
+        { text: t.nav.assets, path: "/assets-holdings", icon: <GiCash /> },
+        { text: t.nav.liabilities, path: "/liabilities", icon: <GiPayMoney /> },
+        { text: t.nav.insurances, path: "/insurances", icon: <BsShieldCheck /> },
       ],
     },
     {
-      text: "Planning",
+      text: t.nav.planning,
       icon: <BsJournalText />,
       items: [
-        { text: "FIRE", path: "/fire", icon: <FaFireFlameCurved /> },
-        { text: "Goals", path: "/goals", icon: <GoGoal /> },
+        { text: t.nav.fire, path: "/fire", icon: <FaFireFlameCurved /> },
+        { text: t.nav.goals, path: "/goals", icon: <GoGoal /> },
         {
-          text: "Networth Projection",
+          text: t.nav.networthProjection,
           path: "/networth-projection",
           icon: <BsGraphUp />,
         },
       ],
     },
     {
-      text: "Settings & Info",
+      text: t.nav.settingsInfo,
       icon: <BsThreeDots />,
       items: [
-        { text: "Tools", path: "/tools", icon: <FaTools /> },
-        { text: "Knowledge Centre", path: "/knowledge-centre", icon: <IoBookSharp /> },
-        { text: "Settings", path: "/settings", icon: <BsGear /> },
-        { text: "About", path: "/about", icon: <MdQuestionMark /> },
+        { text: t.nav.tools, path: "/tools", icon: <FaTools /> },
+        { text: t.nav.knowledgeCentre, path: "/knowledge-centre", icon: <IoBookSharp /> },
+        { text: t.nav.settings, path: "/settings", icon: <BsGear /> },
+        { text: t.nav.about, path: "/about", icon: <MdQuestionMark /> },
       ],
     },
   ];
@@ -204,7 +205,7 @@ export default function Layout() {
             title="Click to activate the new version immediately"
           >
             <span className="spinner-grow spinner-grow-sm text-white" role="status" aria-hidden="true" style={{ width: "8px", height: "8px" }} />
-            Update Available
+            {t.nav.updateAvailable}
           </Button>
         )}
       </div>
@@ -245,7 +246,7 @@ export default function Layout() {
                 variant="outline-danger"
                 size="sm"
                 onClick={handleSignOut}
-                title="Sign out"
+                title={t.nav.signOut}
               >
                 <BsBoxArrowRight />
               </Button>
@@ -282,7 +283,7 @@ export default function Layout() {
                 variant="outline-danger"
                 size="sm"
                 onClick={handleSignOut}
-                title="Sign out"
+                title={t.nav.signOut}
               >
                 <BsBoxArrowRight />
               </Button>

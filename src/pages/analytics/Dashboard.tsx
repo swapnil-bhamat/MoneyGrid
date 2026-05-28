@@ -14,6 +14,7 @@ import Gauge from "@/components/common/Gauge";
 import CashFlowDiagram from "@/components/analytics/CashFlowDiagram";
 import { toLocalCurrency } from "@/utils/numberUtils";
 import { useMobile } from "@/hooks/useMobile";
+import { t } from "@/utils/localization";
 
 
 import DailyTipCard from "@/components/widgets/DailyTipCard";
@@ -30,6 +31,7 @@ export default function Dashboard() {
     assetClassColors,
     assetGoalColors,
     savingsColors,
+    incomeColors,
     assetAllocationByBucket,
     goalProgress,
     projectedAssetGrowth,
@@ -109,30 +111,7 @@ export default function Dashboard() {
           <Col md={12}>
             <Card className="mb-4 shadow">
               <Card.Header as="h6">
-                Monthly Income (
-                <span
-                  className="text-info"
-                  role="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = "/cash-flow";
-                  }}
-                >
-                  {toLocalCurrency(withPercentage[0]?.total)}
-                </span>
-                ) vs Expense Categories vs{" "}
-                <strong>
-                  <span
-                    className="text-info"
-                    role="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = "/knowledge-centre";
-                    }}
-                  >
-                    50:30:20 Rule
-                  </span>
-                </strong>
+                {t.dashboard.monthlyIncomeVsExpenses}
               </Card.Header>
               <Card.Body>
                 <Row xs={1} md={3} className="g-4">
@@ -157,7 +136,7 @@ export default function Dashboard() {
           <Col md={12}>
             {goalProgress.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Financial Goals Progress</Card.Header>
+                <Card.Header as="h6">{t.dashboard.financialGoalsProgress}</Card.Header>
                 <Card.Body>
                   <GoalProgressChart data={goalProgress} />
                 </Card.Body>
@@ -170,7 +149,7 @@ export default function Dashboard() {
           <Col md={4}>
             {incomeAllocation && incomeAllocation.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Income Breakdown</Card.Header>
+                <Card.Header as="h6">{t.dashboard.incomeBreakdown}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -184,46 +163,10 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {incomeAllocation.map((_, index) => (
+                        {incomeAllocation.map((entry, index) => (
                           <Cell
                             key={`cell-income-${index}`}
-                            fill={assetGoalColors[index % assetGoalColors.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
-                        }
-                      />
-                      {!isMobile && <Legend />}
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Card.Body>
-              </Card>
-            )}
-          </Col>
-          <Col md={4}>
-            {savingsCashFlow.length > 0 && (
-              <Card className="mb-4 shadow">
-                <Card.Header as="h6">Monthly Cash Flow (Savings)</Card.Header>
-                <Card.Body style={{ height: 350 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={savingsCashFlow}
-                        dataKey="value"
-                        nameKey="label"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        labelLine={false}
-                        label={renderCustomizedLabel}
-                      >
-                        {savingsCashFlow.map((_, index) => (
-                          <Cell
-                            key={`cell-savings-${index}`}
-                            fill={savingsColors[index % savingsColors.length]}
+                            fill={entry.color || incomeColors[index % incomeColors.length]}
                           />
                         ))}
                       </Pie>
@@ -242,7 +185,7 @@ export default function Dashboard() {
           <Col md={4}>
             {assetClassAllocation.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Class</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationClass}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -279,7 +222,7 @@ export default function Dashboard() {
             {projectedAssetGrowth.length > 0 && (
               <Card className="mb-4 shadow">
                 <Card.Header as="h6">
-                  Projected Asset Growth (1 Year)
+                  {t.dashboard.projectedGrowth}
                 </Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -331,9 +274,45 @@ export default function Dashboard() {
         </Row>
         <Row>
           <Col md={4}>
+            {savingsCashFlow.length > 0 && (
+              <Card className="mb-4 shadow">
+                <Card.Header as="h6">{t.dashboard.monthlyCashFlow}</Card.Header>
+                <Card.Body style={{ height: 350 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={savingsCashFlow}
+                        dataKey="value"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                      >
+                        {savingsCashFlow.map((entry, index) => (
+                          <Cell
+                            key={`cell-savings-${index}`}
+                            fill={entry.color || savingsColors[index % savingsColors.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number | undefined) =>
+                          toLocalCurrency(value)
+                        }
+                      />
+                      {!isMobile && <Legend />}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            )}
+          </Col>
+          <Col md={4}>
             {assetAllocationByBucket.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Buckets</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationBucket}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -347,11 +326,11 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {assetAllocationByBucket.map((_, index) => (
+                        {assetAllocationByBucket.map((entry, index) => (
                           <Cell
                             key={`cell-savings-${index}`}
                             fill={
-                              assetClassColors[index % assetClassColors.length]
+                              entry.color || assetClassColors[index % assetClassColors.length]
                             }
                           />
                         ))}
@@ -371,7 +350,7 @@ export default function Dashboard() {
           <Col md={4}>
             {assetAllocationByGoal.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Goal</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationGoal}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -385,11 +364,11 @@ export default function Dashboard() {
                         labelLine={false}
                         label={renderCustomizedLabel}
                       >
-                        {assetAllocationByGoal.map((_, index) => (
+                        {assetAllocationByGoal.map((entry, index) => (
                           <Cell
                             key={`cell-goal-${index}`}
                             fill={
-                              assetGoalColors[index % assetGoalColors.length]
+                              entry.color || assetGoalColors[index % assetGoalColors.length]
                             }
                           />
                         ))}
