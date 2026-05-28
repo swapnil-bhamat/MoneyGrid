@@ -30,6 +30,7 @@ import DriveSyncButton from "@/components/backups/DriveSyncButton";
 import ChatWidget from "@/components/ai/ChatWidget";
 import UndoRedoControls from "./UndoRedoControls";
 import { IoBookSharp } from "react-icons/io5";
+import { usePwaUpdate } from "@/hooks/usePwaUpdate";
 
 type MenuItem = {
   text: string;
@@ -45,6 +46,7 @@ export default function Layout() {
   const handleShow = () => setShowSidebar(true);
 
   const { user, authState, handleSignOut } = useAuth();
+  const { currentVersion, updateAvailable, updateApp } = usePwaUpdate();
 
 
   const menuItems: MenuItem[] = [
@@ -184,6 +186,27 @@ export default function Layout() {
         >
           <MdEmail />
         </Button>
+      </div>
+      <div className="text-center mt-2 d-flex flex-column align-items-center gap-1">
+        <span className="text-muted small fw-medium" style={{ fontSize: "0.75rem" }}>
+          MoneyGrid v{currentVersion}
+        </span>
+        {updateAvailable && (
+          <Button
+            variant="warning"
+            size="sm"
+            className="py-1 px-3 rounded-pill text-white fw-bold d-flex align-items-center gap-1 shadow-sm border-0"
+            style={{ 
+              fontSize: "0.7rem", 
+              animation: "pulse 2s infinite" 
+            }}
+            onClick={updateApp}
+            title="Click to activate the new version immediately"
+          >
+            <span className="spinner-grow spinner-grow-sm text-white" role="status" aria-hidden="true" style={{ width: "8px", height: "8px" }} />
+            Update Available
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -42,6 +42,7 @@ import { logError } from "@/services/logger";
 import { DesktopTableView } from "@/components/common/DesktopTableView";
 import { MobileCardView } from "@/components/common/MobileCardView";
 import { useTheme } from "@/contexts/themeContext";
+import { usePwaUpdate } from "@/hooks/usePwaUpdate";
 import { Column } from "@/types/ui";
 
 // Configuration Pages Imports
@@ -419,6 +420,14 @@ export default function SettingsPage() {
     removePinFallback
   } = useBioLock();
   const { bootswatchTheme, setBootswatchTheme } = useTheme();
+  const {
+    currentVersion,
+    updateAvailable,
+    checkingForUpdate,
+    noUpdateFound,
+    checkForUpdates,
+    updateApp
+  } = usePwaUpdate();
 
   // Backup PIN states
   const [showPinModal, setShowPinModal] = useState(false);
@@ -502,6 +511,64 @@ export default function SettingsPage() {
                   <option value="zephyr">Zephyr (Airy Soft Modern Pastels)</option>
                 </Form.Select>
               </Form.Group>
+            </Card.Body>
+          </Card>
+
+          <Card className="mb-4">
+            <Card.Header>Application Updates</Card.Header>
+            <Card.Body>
+              <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                <div>
+                  <h5 className="mb-1">MoneyGrid PWA Platform</h5>
+                  <p className="text-muted mb-0 small">
+                    Current version: <strong className="text-primary">v{currentVersion}</strong>
+                  </p>
+                  <p className="text-muted mb-0 small mt-1">
+                    {updateAvailable ? (
+                      <span className="text-warning fw-semibold">
+                        ⚠️ A new update is available. Download the latest changes now.
+                      </span>
+                    ) : noUpdateFound ? (
+                      <span className="text-success fw-semibold">
+                        ✓ Checked! Already on the latest version.
+                      </span>
+                    ) : (
+                      <span className="text-success fw-semibold">
+                        ✓ MoneyGrid is running the latest version.
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="d-flex gap-2">
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="rounded-pill px-3"
+                    disabled={checkingForUpdate}
+                    onClick={checkForUpdates}
+                  >
+                    {checkingForUpdate ? (
+                      <>
+                        <Spinner size="sm" animation="border" className="me-2" />
+                        Checking...
+                      </>
+                    ) : (
+                      "Check for Updates"
+                    )}
+                  </Button>
+                  {updateAvailable && (
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      className="rounded-pill px-3 text-white fw-bold"
+                      onClick={updateApp}
+                      style={{ animation: "pulse 2s infinite" }}
+                    >
+                      Update & Restart
+                    </Button>
+                  )}
+                </div>
+              </div>
             </Card.Body>
           </Card>
 

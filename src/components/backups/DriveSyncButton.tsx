@@ -110,7 +110,7 @@ const DriveSyncButton: React.FC = () => {
         )}
       </Button>
 
-      <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 9999 }}>
+      <ToastContainer position="bottom-end" className="p-3 position-fixed" style={{ zIndex: 9999, position: "fixed" }}>
         <Toast
           bg={
             status === "success" || (authState === "signedIn" && toastMsg.includes("Successfully connected"))
