@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Card, Row, Col, Badge, Button } from "react-bootstrap";
 import { toLocalCurrency } from "@/utils/numberUtils";
+import { t } from "@/utils/localization";
 import {
     FaFlagCheckered,
     FaSeedling,
@@ -15,169 +16,7 @@ import {
 } from "react-icons/fa";
 import { BsDownload } from "react-icons/bs";
 
-// Detailed levels with criteria for tooltips
-const levels = [
-    {
-        id: 1,
-        label: "Clarity",
-        icon: FaFlagCheckered,
-        desc: "Knowing where you stand",
-        criteria: "Track Income & Expenses",
-        // Returns { current, target, unit, passed }
-        getMath: (d: any) => ({
-            current: d.income > 0 && d.expenses > 0 ? "Tracking" : "Not Tracking",
-            target: "Tracking",
-            label: "Income & Expenses",
-            passed: d.income > 0 && d.expenses > 0,
-            remaining: undefined,
-            percentage: (d.income > 0 && d.expenses > 0) ? 100 : 0
-        })
-    },
-    {
-        id: 2,
-        label: "Solvency",
-        icon: FaSeedling,
-        desc: "Income > Expenses",
-        criteria: "Monthly Income > Expenses",
-        getMath: (d: any) => {
-            const pct = d.expenses > 0 ? (d.income / d.expenses) * 100 : (d.income > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(d.income),
-                target: toLocalCurrency(d.expenses),
-                label: "Income vs Expenses",
-                passed: d.income > d.expenses,
-                remaining: Math.max(0, d.expenses - d.income),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 3,
-        label: "Breathing Room",
-        icon: FaWalking,
-        desc: "Positive Net Worth",
-        criteria: "Assets > Liabilities",
-        getMath: (d: any) => {
-            const pct = d.liabilities > 0 ? (d.assets / d.liabilities) * 100 : (d.assets > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(d.assets),
-                target: toLocalCurrency(d.liabilities),
-                label: "Assets vs Liabilities",
-                passed: d.assets > d.liabilities,
-                remaining: Math.max(0, d.liabilities - d.assets),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 4,
-        label: "Stability",
-        icon: FaRunning,
-        desc: "3 Months Emergency Fund",
-        criteria: "Emergency Fund > 3x Expenses",
-        getMath: (d: any) => {
-            const target = d.expenses * 3;
-            const pct = target > 0 ? (d.emergencyFund / target) * 100 : (d.emergencyFund > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(d.emergencyFund),
-                target: `${toLocalCurrency(d.expenses)} * 3 = ${toLocalCurrency(target)}`,
-                label: "Emergency Fund vs 3x Needs",
-                passed: d.emergencyFund >= target,
-                remaining: Math.max(0, target - d.emergencyFund),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 5,
-        label: "Flexibility",
-        icon: FaPlane,
-        desc: "6 Months Emergency Fund",
-        criteria: "Emergency Fund > 6x Expenses",
-        getMath: (d: any) => {
-            const target = d.expenses * 6;
-            const pct = target > 0 ? (d.emergencyFund / target) * 100 : (d.emergencyFund > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(d.emergencyFund),
-                target: `${toLocalCurrency(d.expenses)} * 6 = ${toLocalCurrency(target)}`,
-                label: "Emergency Fund vs 6x Needs",
-                passed: d.emergencyFund >= target,
-                remaining: Math.max(0, target - d.emergencyFund),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 6,
-        label: "Lean FIRE",
-        icon: FaLeaf,
-        desc: "Assets cover Needs (3.5% Rule)",
-        note: "EMI is deducted because we assume you already have enough assets to repay the loan. The calculation only considers Retirement Assets, excluding other goal-linked assets.",
-        criteria: "Investments > 343x (Needs - EMI)",
-        getMath: (d: any) => {
-            const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
-            const target = leanExpenses * 343;
-            const fireAssets = d.retirementAssets || 0;
-            const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(fireAssets),
-                target: `${toLocalCurrency(leanExpenses)} * 343 = ${toLocalCurrency(target)}`,
-                label: "Retirement Assets vs 3.5% SWR Lean FIRE Target",
-                passed: fireAssets >= target,
-                remaining: Math.max(0, target - fireAssets),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 7,
-        label: "Financial Independence",
-        icon: FaRocket,
-        desc: "Assets cover Needs & Wants (3.5% Rule)",
-        note: "EMI is deducted because we assume you already have enough assets to repay the loan. The calculation only considers Retirement Assets, excluding other goal-linked assets.",
-        criteria: "Investments > 343x (Needs - EMI + Wants)",
-        getMath: (d: any) => {
-            const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
-            const totalMonthly = leanExpenses + (d.wants || 0);
-            const target = totalMonthly * 343;
-            const fireAssets = d.retirementAssets || 0;
-            const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(fireAssets),
-                target: `${toLocalCurrency(totalMonthly)} * 343 = ${toLocalCurrency(target)}`,
-                label: "Retirement Assets vs 3.5% SWR Target",
-                passed: fireAssets >= target,
-                remaining: Math.max(0, target - fireAssets),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-    {
-        id: 8,
-        label: "Abundant Wealth",
-        icon: FaGem,
-        desc: "Unlimited options",
-        note: "EMI is deducted because we assume you already have enough assets to repay the loan. The calculation only considers Retirement Assets, excluding other goal-linked assets.",
-        criteria: "Investments > 600x (Needs - EMI + Wants)",
-        getMath: (d: any) => {
-            const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
-            const totalMonthly = leanExpenses + (d.wants || 0);
-            const target = totalMonthly * 600;
-            const fireAssets = d.retirementAssets || 0;
-            const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
-            return {
-                current: toLocalCurrency(fireAssets),
-                target: `${toLocalCurrency(totalMonthly)} * 600 = ${toLocalCurrency(target)}`,
-                label: "Retirement Assets vs 50x Annual Needs",
-                passed: fireAssets >= target,
-                remaining: Math.max(0, target - fireAssets),
-                percentage: Math.min(100, Math.max(0, pct))
-            };
-        }
-    },
-];
-
-function determineLevel(data: any) {
+function determineLevel(data: any, levels: any[]) {
     if (!levels[0].getMath(data).passed) return 1;
 
     for (let i = 1; i < levels.length; i++) {
@@ -213,7 +52,168 @@ export default function FinancialFreedomKPI({
 }) {
     const data = { income, assets, liabilities, emergencyFund, expenses, wants, emi, retirementAssets };
 
-    const currentLevelId = useMemo(() => determineLevel(data), [income, assets, liabilities, emergencyFund, expenses, wants, emi, retirementAssets]);
+    // Define detailed levels dynamically so they reference localization dynamically
+    const levels = useMemo(() => [
+        {
+            id: 1,
+            label: t.financialFreedom.levels.clarity.label,
+            icon: FaFlagCheckered,
+            desc: t.financialFreedom.levels.clarity.desc,
+            criteria: t.financialFreedom.levels.clarity.criteria,
+            getMath: (d: any) => ({
+                current: d.income > 0 && d.expenses > 0 ? t.financialFreedom.levels.clarity.tracking : t.financialFreedom.levels.clarity.notTracking,
+                target: t.financialFreedom.levels.clarity.tracking,
+                label: t.financialFreedom.levels.clarity.currentLabel,
+                passed: d.income > 0 && d.expenses > 0,
+                remaining: undefined,
+                percentage: (d.income > 0 && d.expenses > 0) ? 100 : 0
+            })
+        },
+        {
+            id: 2,
+            label: t.financialFreedom.levels.solvency.label,
+            icon: FaSeedling,
+            desc: t.financialFreedom.levels.solvency.desc,
+            criteria: t.financialFreedom.levels.solvency.criteria,
+            getMath: (d: any) => {
+                const pct = d.expenses > 0 ? (d.income / d.expenses) * 100 : (d.income > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(d.income),
+                    target: toLocalCurrency(d.expenses),
+                    label: t.financialFreedom.levels.solvency.currentLabel,
+                    passed: d.income > d.expenses,
+                    remaining: Math.max(0, d.expenses - d.income),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 3,
+            label: t.financialFreedom.levels.breathingRoom.label,
+            icon: FaWalking,
+            desc: t.financialFreedom.levels.breathingRoom.desc,
+            criteria: t.financialFreedom.levels.breathingRoom.criteria,
+            getMath: (d: any) => {
+                const pct = d.liabilities > 0 ? (d.assets / d.liabilities) * 100 : (d.assets > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(d.assets),
+                    target: toLocalCurrency(d.liabilities),
+                    label: t.financialFreedom.levels.breathingRoom.currentLabel,
+                    passed: d.assets > d.liabilities,
+                    remaining: Math.max(0, d.liabilities - d.assets),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 4,
+            label: t.financialFreedom.levels.stability.label,
+            icon: FaRunning,
+            desc: t.financialFreedom.levels.stability.desc,
+            criteria: t.financialFreedom.levels.stability.criteria,
+            getMath: (d: any) => {
+                const target = d.expenses * 3;
+                const pct = target > 0 ? (d.emergencyFund / target) * 100 : (d.emergencyFund > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(d.emergencyFund),
+                    target: `${toLocalCurrency(d.expenses)} * 3 = ${toLocalCurrency(target)}`,
+                    label: t.financialFreedom.levels.stability.currentLabel,
+                    passed: d.emergencyFund >= target,
+                    remaining: Math.max(0, target - d.emergencyFund),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 5,
+            label: t.financialFreedom.levels.flexibility.label,
+            icon: FaPlane,
+            desc: t.financialFreedom.levels.flexibility.desc,
+            criteria: t.financialFreedom.levels.flexibility.criteria,
+            getMath: (d: any) => {
+                const target = d.expenses * 6;
+                const pct = target > 0 ? (d.emergencyFund / target) * 100 : (d.emergencyFund > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(d.emergencyFund),
+                    target: `${toLocalCurrency(d.expenses)} * 6 = ${toLocalCurrency(target)}`,
+                    label: t.financialFreedom.levels.flexibility.currentLabel,
+                    passed: d.emergencyFund >= target,
+                    remaining: Math.max(0, target - d.emergencyFund),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 6,
+            label: t.financialFreedom.levels.leanFire.label,
+            icon: FaLeaf,
+            desc: t.financialFreedom.levels.leanFire.desc,
+            note: t.financialFreedom.levels.leanFire.note,
+            criteria: t.financialFreedom.levels.leanFire.criteria,
+            getMath: (d: any) => {
+                const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
+                const target = leanExpenses * 343;
+                const fireAssets = d.retirementAssets || 0;
+                const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(fireAssets),
+                    target: `${toLocalCurrency(leanExpenses)} * 343 = ${toLocalCurrency(target)}`,
+                    label: t.financialFreedom.levels.leanFire.currentLabel,
+                    passed: fireAssets >= target,
+                    remaining: Math.max(0, target - fireAssets),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 7,
+            label: t.financialFreedom.levels.independence.label,
+            icon: FaRocket,
+            desc: t.financialFreedom.levels.independence.desc,
+            note: t.financialFreedom.levels.independence.note,
+            criteria: t.financialFreedom.levels.independence.criteria,
+            getMath: (d: any) => {
+                const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
+                const totalMonthly = leanExpenses + (d.wants || 0);
+                const target = totalMonthly * 343;
+                const fireAssets = d.retirementAssets || 0;
+                const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(fireAssets),
+                    target: `${toLocalCurrency(totalMonthly)} * 343 = ${toLocalCurrency(target)}`,
+                    label: t.financialFreedom.levels.independence.currentLabel,
+                    passed: fireAssets >= target,
+                    remaining: Math.max(0, target - fireAssets),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+        {
+            id: 8,
+            label: t.financialFreedom.levels.abundantWealth.label,
+            icon: FaGem,
+            desc: t.financialFreedom.levels.abundantWealth.desc,
+            note: t.financialFreedom.levels.abundantWealth.note,
+            criteria: t.financialFreedom.levels.abundantWealth.criteria,
+            getMath: (d: any) => {
+                const leanExpenses = Math.max(0, d.expenses - (d.emi || 0));
+                const totalMonthly = leanExpenses + (d.wants || 0);
+                const target = totalMonthly * 600;
+                const fireAssets = d.retirementAssets || 0;
+                const pct = target > 0 ? (fireAssets / target) * 100 : (fireAssets > 0 ? 100 : 0);
+                return {
+                    current: toLocalCurrency(fireAssets),
+                    target: `${toLocalCurrency(totalMonthly)} * 600 = ${toLocalCurrency(target)}`,
+                    label: t.financialFreedom.levels.abundantWealth.currentLabel,
+                    passed: fireAssets >= target,
+                    remaining: Math.max(0, target - fireAssets),
+                    percentage: Math.min(100, Math.max(0, pct))
+                };
+            }
+        },
+    ], []);
+
+    const currentLevelId = useMemo(() => determineLevel(data, levels), [data, levels]);
 
     // State for interaction
     const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
@@ -232,10 +232,10 @@ export default function FinancialFreedomKPI({
         const rows = levels.map((level) => {
             const math = level.getMath(data);
             const status = level.id < currentLevelId
-                ? "Completed"
+                ? t.financialFreedom.completed
                 : level.id === currentLevelId
-                    ? "In Progress"
-                    : "Locked";
+                    ? t.financialFreedom.inProgress
+                    : t.financialFreedom.locked;
             const remaining = math.remaining !== undefined
                 ? toLocalCurrency(math.remaining)
                 : "";
@@ -254,9 +254,9 @@ export default function FinancialFreedomKPI({
         });
 
         const markdown = [
-            "# Financial Freedom Tracker",
+            `# ${t.financialFreedom.title}`,
             "",
-            `Current Level: ${currentLevelId}`,
+            `${t.financialFreedom.currentLevel}: ${currentLevelId}`,
             "",
             `| ${headers.map(escapeMarkdownCell).join(" | ")} |`,
             `| ${separators.join(" | ")} |`,
@@ -287,16 +287,16 @@ export default function FinancialFreedomKPI({
 
             <Card.Header as="h5" className="bg-transparent border-bottom-0 pb-0 pt-4 px-4">
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <span>Financial Freedom Tracker</span>
+                    <span>{t.financialFreedom.title}</span>
                     <div className="d-flex align-items-center gap-2">
-                        <span className="badge bg-primary rounded-pill">Current Level: {currentLevelId}</span>
+                        <span className="badge bg-primary rounded-pill">{t.financialFreedom.currentLevel}: {currentLevelId}</span>
                         <Button
                             variant="outline-info"
                             size="sm"
                             className="d-flex align-items-center"
                             onClick={handleDownload}
-                            title="Download as Markdown"
-                            aria-label="Download Financial Freedom Tracker as Markdown"
+                            title={t.financialFreedom.downloadLabel}
+                            aria-label={t.financialFreedom.downloadLabel}
                         >
                             <BsDownload size={18} />
                         </Button>
@@ -384,17 +384,17 @@ export default function FinancialFreedomKPI({
                                 {activeLevelInfo.icon && <activeLevelInfo.icon className="text-primary" />}
                                 {activeLevelInfo.label}
                                 {isSelectedCompleted ?
-                                    <Badge bg="success" className="ms-2" style={{ fontSize: '0.6em' }}>Completed</Badge> :
+                                    <Badge bg="success" className="ms-2" style={{ fontSize: '0.6em' }}>{t.financialFreedom.completed}</Badge> :
                                     (isSelectedCurrent ?
-                                        <Badge bg="primary" className="ms-2" style={{ fontSize: '0.6em' }}>In Progress</Badge> :
-                                        <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.6em' }}>Locked</Badge>
+                                        <Badge bg="primary" className="ms-2" style={{ fontSize: '0.6em' }}>{t.financialFreedom.inProgress}</Badge> :
+                                        <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.6em' }}>{t.financialFreedom.locked}</Badge>
                                     )
                                 }
                             </h4>
                             <p className="text-muted mb-3 mb-md-0">{activeLevelInfo.desc}</p>
                             {(activeLevelInfo as any).note && (
                                 <div className="alert alert-info mt-3 py-2 px-3 small border-0 mb-0 d-flex align-items-start shadow-sm" style={{ backgroundColor: 'rgba(13, 110, 253, 0.08)' }}>
-                                    <div><strong>Note:</strong> {(activeLevelInfo as any).note}</div>
+                                    <div><strong>{t.financialFreedom.noteLabel}:</strong> {(activeLevelInfo as any).note}</div>
                                 </div>
                             )}
                         </Col>
@@ -408,19 +408,19 @@ export default function FinancialFreedomKPI({
                                         <div className="fw-bold fs-4 text-primary">
                                             {activeMath.remaining !== undefined ? (
                                                 <>
-                                                    <span className="small text-muted me-2">Remaining:</span>
+                                                    <span className="small text-muted me-2">{t.financialFreedom.remaining}:</span>
                                                     {toLocalCurrency(activeMath.remaining)}
                                                 </>
                                             ) : activeMath.current}
                                         </div>
                                     )}
-                                    <div className="small text-muted text-end">Target: {activeMath.target}</div>
+                                    <div className="small text-muted text-end">{t.financialFreedom.target}: {activeMath.target}</div>
                                 </div>
                                 {/* Simple visual bar for this specific metric */}
                                 {typeof activeMath.current === 'string' && activeMath.current.includes("Tracking") ? null : (
                                     <div className="mt-2">
                                         <div className="d-flex justify-content-between align-items-center mb-1 small text-muted">
-                                            <span>Progress</span>
+                                            <span>{t.financialFreedom.progress}</span>
                                             <span className="fw-bold">{activeMath.percentage?.toFixed(1) || 0}%</span>
                                         </div>
                                         <div className="progress" style={{ height: '8px' }}>
@@ -434,9 +434,9 @@ export default function FinancialFreedomKPI({
                                 )}
                                 <div className="small mt-1 text-end">
                                     {activeMath.passed ? (
-                                        <span className="text-success fw-bold"><FaCheck className="me-1" />Criteria Met</span>
+                                        <span className="text-success fw-bold"><FaCheck className="me-1" />{t.financialFreedom.criteriaMet}</span>
                                     ) : (
-                                        <span className="text-warning-emphasis fw-bold">Target not met</span>
+                                        <span className="text-warning-emphasis fw-bold">{t.financialFreedom.targetNotMet}</span>
                                     )}
                                 </div>
                             </div>

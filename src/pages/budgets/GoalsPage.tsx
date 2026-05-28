@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import type { Goal } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
+import { t } from "@/utils/localization";
 
 interface GoalFormProps {
   show: boolean;
@@ -50,11 +51,11 @@ function GoalForm({ item, onSave, onHide, show }: GoalFormProps) {
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Goal" : "Add Goal"}
+      title={item ? t.goals.editGoal : t.goals.addGoal}
       isValid={!!name}
     >
       <Form.Group className="mb-3" controlId="formGoalName">
-        <Form.Label>Name</Form.Label>
+        <Form.Label>{t.goals.goalName}</Form.Label>
         <Form.Control
           type="text"
           value={name}
@@ -65,7 +66,7 @@ function GoalForm({ item, onSave, onHide, show }: GoalFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formGoalPriority">
-        <Form.Label>Priority</Form.Label>
+        <Form.Label>{t.goals.priority}</Form.Label>
         <Form.Control
           type="number"
           value={priority}
@@ -75,7 +76,7 @@ function GoalForm({ item, onSave, onHide, show }: GoalFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formGoalAmountRequired">
-        <Form.Label>Amount Required Today</Form.Label>
+        <Form.Label>{t.goals.targetToday}</Form.Label>
         <AmountInput
           value={amountRequiredToday}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -84,7 +85,7 @@ function GoalForm({ item, onSave, onHide, show }: GoalFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formGoalDuration">
-        <Form.Label>Duration (Years)</Form.Label>
+        <Form.Label>{t.goals.durationYears}</Form.Label>
         <Form.Control
           type="number"
           value={durationInYears}
@@ -95,7 +96,7 @@ function GoalForm({ item, onSave, onHide, show }: GoalFormProps) {
       </Form.Group>
       <FormSelect
         controlId="formGoalAssetPurpose"
-        label="Asset Purpose"
+        label={t.common.purpose}
         value={assetPurpose_id}
         onChange={(e) => setAssetPurposeId(Number(e.target.value))}
         options={assetPurposes}
@@ -128,7 +129,7 @@ export default function GoalsPage() {
 
   return (
     <BasePage<Goal>
-      title="Goals"
+      title={t.goals.title}
       data={[...goals].sort((a, b) => (a.assetPurpose_id || 0) - (b.assetPurpose_id || 0))}
       groupBy={(item) => {
         const name = getAssetPurposeName(item.assetPurpose_id);
@@ -140,14 +141,14 @@ export default function GoalsPage() {
       groupSort={(a, b) => Number(a) - Number(b)}
       groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.amountRequiredToday, 0))}
       columns={[
-        { field: "name", headerName: "Name" },
-        { field: "priority", headerName: "Priority" },
+        { field: "name", headerName: t.goals.goalName },
+        { field: "priority", headerName: t.goals.priority },
         {
           field: "amountRequiredToday",
-          headerName: "Amount Required",
+          headerName: t.goals.target,
           renderCell: (item) => toLocalCurrency(item.amountRequiredToday),
         },
-        { field: "durationInYears", headerName: "Duration (Years)" },
+        { field: "durationInYears", headerName: t.goals.durationYears },
       ]}
       onAdd={handleAdd}
       onEdit={handleEdit}

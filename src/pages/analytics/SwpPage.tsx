@@ -18,7 +18,14 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import { useSharedDashboardData } from "@/contexts/DashboardDataContext";
-import { toLocalCurrency } from "@/utils/numberUtils";
+import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
+import { t } from "@/utils/localization";
+import { FINANCIAL_CATEGORIES } from "@/utils/constants";
+
+const capitalize = (str: string): string => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 const SwpPage: React.FC = () => {
   const userConfig =
@@ -43,7 +50,9 @@ const SwpPage: React.FC = () => {
 
   const { withPercentage, assetAllocationByBucket } = useSharedDashboardData();
   const needPerMonth =
-    withPercentage.filter((a) => a?.id === "Need")[0]?.value ?? 0;
+    withPercentage.find(
+      (a) => a?.type === FINANCIAL_CATEGORIES.NEED || a?.id === capitalize(FINANCIAL_CATEGORIES.NEED)
+    )?.value ?? 0;
   const shortTermBucketValue =
     assetAllocationByBucket.filter((a) => a?.label === "Short Term")[0]
       ?.value ?? 0;
@@ -74,6 +83,8 @@ const SwpPage: React.FC = () => {
     avgShortTermXIRR: 6,
     avgLongTermXIRR: 12,
   };
+
+  const activeCurrency = getActiveCurrency();
 
   // ---------------- Projection Table Logic ----------------
   type ProjectionRow = {
@@ -386,8 +397,8 @@ const SwpPage: React.FC = () => {
                       <th>Metric</th>
                       <th>Current</th>
                       <th>Required</th>
-                      <th>Gap</th>
-                      <th>Status</th>
+                      <th>{t.goals.gap}</th>
+                      <th>{t.common.status}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -547,10 +558,10 @@ const SwpPage: React.FC = () => {
                 <tr>
                   <th>Year</th>
                   <th>Age</th>
-                  <th>Yearly Need (₹)</th>
-                  <th>Withdrawal (₹)</th>
-                  <th>Short Term Bucket (₹)</th>
-                  <th>Long Term Bucket (₹)</th>
+                  <th>Yearly Need ({activeCurrency.symbol})</th>
+                  <th>Withdrawal ({activeCurrency.symbol})</th>
+                  <th>Short Term Bucket ({activeCurrency.symbol})</th>
+                  <th>Long Term Bucket ({activeCurrency.symbol})</th>
                   <th>Status</th>
                 </tr>
               </thead>

@@ -8,6 +8,8 @@ import FormSelect from "@/components/common/FormSelect";
 import { FieldSchema, GenericCRUDConfig } from "@/types/crud.types";
 import { BaseRecord } from "@/infrastructure/db/db.types";
 
+import { t } from "@/utils/localization";
+
 interface GenericFormProps<T> extends BasePageFormProps<T> {
   fields: FieldSchema<T>[];
   title: string;
@@ -70,7 +72,7 @@ function GenericForm<T extends BaseRecord & { name?: string }>({
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={`${item ? "Edit" : "Add"} ${title}`}
+      title={`${item ? t.common.edit : t.common.add} ${title}`}
       isValid={isValid}
     >
       {fields.map((field) => {
@@ -83,7 +85,7 @@ function GenericForm<T extends BaseRecord & { name?: string }>({
               value={formData[field.name] ?? ""}
               onChange={(e) => handleChange(field.name, Number(e.target.value))}
               options={dropdownOptions[field.name] ?? []}
-              defaultText={`Select ${field.label}`}
+              defaultText={`${t.common.select} ${field.label}`}
             />
           );
         }

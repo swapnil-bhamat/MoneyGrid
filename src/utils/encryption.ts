@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from "@/utils/constants";
+
 const ENCRYPTION_PREFIX = "ENC:";
 
 // Helper to convert base64 to ArrayBuffer
@@ -46,18 +48,18 @@ async function deriveKey(passphrase: string, salt: string): Promise<CryptoKey> {
 }
 
 export function getPassphrase(): string {
-  const bioEnabled = localStorage.getItem("bio_auth_enabled") === "true";
-  const bioCredId = localStorage.getItem("bio_auth_credential_id");
+  const bioEnabled = localStorage.getItem(STORAGE_KEYS.BIO_AUTH_ENABLED) === "true";
+  const bioCredId = localStorage.getItem(STORAGE_KEYS.BIO_AUTH_CREDENTIAL_ID);
   
   if (bioEnabled && bioCredId) {
     return bioCredId;
   }
   
-  let deviceKey = localStorage.getItem("device_encryption_key");
+  let deviceKey = localStorage.getItem(STORAGE_KEYS.DEVICE_ENCRYPTION_KEY);
   if (!deviceKey) {
     // Generate a cryptographically secure random UUID as device key
     deviceKey = window.crypto.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2);
-    localStorage.setItem("device_encryption_key", deviceKey);
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ENCRYPTION_KEY, deviceKey);
   }
   return deviceKey;
 }

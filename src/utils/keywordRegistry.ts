@@ -1,3 +1,5 @@
+import { t } from "@/utils/localization";
+
 export interface KeywordDetail {
   keyword: string;
   icon: string;        // Unicode emoji/icon character
@@ -275,18 +277,68 @@ export const getKeywordDetails = (name: string | undefined | null): KeywordDetai
   if (!name) return { keyword: "", icon: "❓", color: "secondary", hex: "#7f8c8d" };
   const normalized = name.toLowerCase().trim();
   
-  // 1. Exact match
+  // Map normalized category/keyword names to localized keys in t.keywords
+  const translationKeyMap: Record<string, string> = {
+    need: "need",
+    needs: "need",
+    want: "want",
+    wants: "want",
+    saving: "saving",
+    savings: "saving",
+    emergency: "emergency",
+    retirement: "retirement",
+    education: "education",
+    marriage: "marriage",
+    equity: "equity",
+    stock: "stock",
+    stocks: "stock",
+    debt: "debt",
+    liquid: "liquid",
+    gold: "gold",
+    bitcoin: "bitcoin",
+    commodity: "commodity",
+    reit: "reit",
+    "real estate": "realEstate",
+    property: "realEstate",
+    sip: "sip",
+    mutual: "mutualFund",
+    "mutual fund": "mutualFund",
+    fd: "fd",
+    epf: "epf",
+    ssy: "ssy",
+    income: "income",
+    salary: "salary",
+    expense: "expense",
+    emi: "emi",
+    insurance: "insurance",
+    donation: "donation",
+    loan: "loan",
+    liability: "liability",
+    short: "shortTerm",
+    long: "longTerm",
+  };
+
+  // Find exact details from static map
+  let detail: KeywordDetail | undefined;
   if (KEYWORD_MAP[normalized]) {
-    return KEYWORD_MAP[normalized];
-  }
-  
-  // 2. Partial/contains match
-  for (const [key, value] of Object.entries(KEYWORD_MAP)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return value;
+    detail = { ...KEYWORD_MAP[normalized] };
+  } else {
+    for (const [key, value] of Object.entries(KEYWORD_MAP)) {
+      if (normalized.includes(key) || key.includes(normalized)) {
+        detail = { ...value };
+        break;
+      }
     }
   }
+
+  // Localize keyword name if translated key matches
+  if (detail) {
+    const key = translationKeyMap[normalized] || translationKeyMap[detail.keyword.toLowerCase()];
+    if (key && (t.keywords as any)[key]) {
+      detail.keyword = (t.keywords as any)[key];
+    }
+    return detail;
+  }
   
-  // 3. Fallback default
   return { keyword: name, icon: "🏷️", color: "secondary", hex: "#95a5a6" };
 };

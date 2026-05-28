@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Row, Col, Form, InputGroup, Card } from "react-bootstrap";
 import { getREITData, REIT } from "@/data/reitData";
 import REITCard from "@/components/accounts/REITCard";
-import { toLocalCurrency } from "@/utils/numberUtils";
+import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
+import { t } from "@/utils/localization";
 
 export default function REITsPage() {
   const [reits, setReits] = useState<REIT[]>([]);
@@ -33,18 +34,18 @@ export default function REITsPage() {
   const avgYield =
     reits.reduce((sum, r) => sum + r.calculatedYield, 0) / (reits.length || 1);
 
+  const activeCurrency = getActiveCurrency();
+
   return (
     <div className="h-100 d-flex flex-column">
-      {/* <h2 className="mb-4">Indian REIT Passive Income Simulator</h2> */ }
-      
       <Card className="mb-4 shadow-sm border-0">
         <Card.Body>
             <Row className="align-items-end g-3">
                 <Col md={4}>
                     <Form.Group>
-                        <Form.Label className="fw-bold">Total Investment Amount</Form.Label>
+                        <Form.Label className="fw-bold">{t.assets.sipAmount || "Total Investment Amount"}</Form.Label>
                         <InputGroup>
-                            <InputGroup.Text>₹</InputGroup.Text>
+                            <InputGroup.Text>{activeCurrency.symbol}</InputGroup.Text>
                             <AmountInput 
                                 value={totalInvestment} 
                                 onChange={handleTotalInvestmentChange}
@@ -53,7 +54,7 @@ export default function REITsPage() {
                     </Form.Group>
                 </Col>
                 <Col md={4}>
-                    <div className="text-muted small mb-1">Total Monthly Income</div>
+                    <div className="text-muted small mb-1">{t.income.monthlyAmount || "Total Monthly Income"}</div>
                     <div className="fs-3 fw-bold text-success">
                         {toLocalCurrency(totalMonthlyIncome)}
                     </div>

@@ -3,6 +3,13 @@ import { db } from "@/infrastructure/db/db";
 import type { AssetPurpose } from "@/infrastructure/db/db";
 import { calculateProjectedValue } from "@/services/projectionService";
 import { calculateRemainingBalance, calculateEMI } from "@/utils/financialUtils";
+import { t } from "@/utils/localization";
+import { FINANCIAL_CATEGORIES, BUDGET_RULES } from "@/utils/constants";
+
+const capitalize = (str: string): string => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 const getGoalAllocationByName = (
   goals: Array<{ name: string; allocatedAmount: number }>,
@@ -148,11 +155,11 @@ export function useDashboardData() {
     const totalIncome = incomes.reduce((sum, item) => sum + Number(item.monthly), 0);
     const purposeMap = purposes.reduce(
       (
-        map: Record<number, { name: string; total: number }>,
+        map: Record<number, { name: string; type: string; total: number }>,
         purpose: AssetPurpose,
       ) => {
         if (purpose.id) {
-          map[purpose.id] = { name: purpose.name, total: 0 };
+          map[purpose.id] = { name: purpose.name, type: purpose.type || "", total: 0 };
         }
         return map;
       },
@@ -167,38 +174,52 @@ export function useDashboardData() {
 
     const expensesByPurpose = Object.values(purposeMap)
       .filter(
-        (purpose): purpose is { name: string; total: number } =>
+        (purpose): purpose is { name: string; type: string; total: number } =>
           purpose.total > 0,
       )
       .map((purpose) => ({
         id: purpose.name,
+        type: purpose.type,
         value: purpose.total,
         label: purpose.name,
         total: totalIncome,
       }));
 
-    const withPercentage = ["Need", "Savings", "Want"]
-      .map((key) => {
-        const item = expensesByPurpose.find((i) => i.id === key);
+    const withPercentage = [FINANCIAL_CATEGORIES.NEED, FINANCIAL_CATEGORIES.SAVINGS, FINANCIAL_CATEGORIES.WANT]
+      .map((typeKey) => {
+        const item = expensesByPurpose.find((i) => i.type?.toLowerCase() === typeKey);
         if (!item) return null;
         const percentage = (item.value / item.total) * 100;
         let isValid = true;
         let rule = "";
 
-        if (key === "Need") {
-          rule = "≤ 50%";
-          if (percentage > 50) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.NEED) {
+          rule = `≤ ${BUDGET_RULES.NEED_LIMIT}%`;
+          if (percentage > BUDGET_RULES.NEED_LIMIT) isValid = false;
         }
-        if (key === "Want") {
-          rule = "≤ 20%";
-          if (percentage > 20) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.WANT) {
+          rule = `≤ ${BUDGET_RULES.WANT_LIMIT}%`;
+          if (percentage > BUDGET_RULES.WANT_LIMIT) isValid = false;
         }
-        if (key === "Savings") {
-          rule = "≥ 30%";
-          if (percentage < 30) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.SAVINGS) {
+          rule = `≥ ${BUDGET_RULES.SAVINGS_FLOOR}%`;
+          if (percentage < BUDGET_RULES.SAVINGS_FLOOR) isValid = false;
         }
 
-        return { ...item, percentage, isValid, rule };
+        const keyName = capitalize(typeKey);
+        const lookupKey = (typeKey === FINANCIAL_CATEGORIES.SAVINGS ? "saving" : typeKey) as keyof typeof t.keywords;
+        const localizedLabel = t.keywords[lookupKey] || item.label;
+
+        return {
+          id: keyName, // Maintain backward compatibility for pages that index on "Need"/"Savings"/"Want"
+          type: typeKey,
+          value: item.value,
+          label: localizedLabel,
+          total: item.total,
+          percentage,
+          isValid,
+          rule,
+        };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -273,7 +294,7 @@ export function useDashboardData() {
 
     // 8. Calculate savings cash flow
     const savingsPurposeIds = purposes
-      .filter((p) => p.type === "savings")
+      .filter((p) => p.type === FINANCIAL_CATEGORIES.SAVINGS)
       .map((p) => p.id);
     const goalMap: Record<number, { name: string; total: number }> = {};
     goals.forEach((goal) => {
@@ -303,21 +324,21 @@ export function useDashboardData() {
     // 9. Card data
     const cardData = [
       {
-        title: "Total Assets",
+        title: t.dashboard.totalAssets,
         value: totalAssets,
         bg: "primary",
         text: "white",
         url: "/assets-holdings",
       },
       {
-        title: "Total Liabilities",
+        title: t.dashboard.totalLiabilities,
         value: totalLiabilities,
         bg: "danger",
         text: "white",
         url: "/liabilities",
       },
       {
-        title: "Net Worth",
+        title: t.dashboard.netWorth,
         value: netWorth,
         bg: "success",
         text: "white",
@@ -409,8 +430,8 @@ export function useDashboardData() {
       income: totalIncome,
       assets: totalAssets,
       liabilities: totalLiabilities,
-      expenses: expensesByPurpose.find((e) => e.id === "Need")?.value || 0,
-      wants: expensesByPurpose.find((e) => e.id === "Want")?.value || 0,
+      expenses: expensesByPurpose.find((e) => e.type === FINANCIAL_CATEGORIES.NEED || e.id === capitalize(FINANCIAL_CATEGORIES.NEED))?.value || 0,
+      wants: expensesByPurpose.find((e) => e.type === FINANCIAL_CATEGORIES.WANT || e.id === capitalize(FINANCIAL_CATEGORIES.WANT))?.value || 0,
       emergencyFund: getGoalAllocationByName(goalProgress, /emergency/i),
       retirementAssets: getGoalAllocationByName(goalProgress, /fire/i),
       emi: totalEmi,

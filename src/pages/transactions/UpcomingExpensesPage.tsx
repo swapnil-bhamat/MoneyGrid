@@ -11,6 +11,7 @@ import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { BsCheckCircleFill, BsCircle } from "react-icons/bs";
 import { getKeywordDetails } from "@/utils/keywordRegistry";
+import { t } from "@/utils/localization";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 
@@ -63,23 +64,23 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Upcoming Expense" : "Add Upcoming Expense"}
+      title={item ? t.upcomingExpenses.editExpense : t.upcomingExpenses.addExpense}
       isValid={!!title && !!dueDate}
     >
       <Form.Group className="mb-3" controlId="formExpenseTitle">
-        <Form.Label>Title</Form.Label>
+        <Form.Label>{t.upcomingExpenses.expenseTitle}</Form.Label>
         <Form.Control
           type="text"
           value={title}
           autoFocus
           required
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="What is this expense for?"
+          placeholder={t.upcomingExpenses.expenseTitlePlaceholder}
         />
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formExpenseDescription">
-        <Form.Label>Description</Form.Label>
+        <Form.Label>{t.common.description}</Form.Label>
         <Form.Control
           as="textarea"
           rows={2}
@@ -90,7 +91,7 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formExpenseDueDate">
-        <Form.Label>Due Date</Form.Label>
+        <Form.Label>{t.upcomingExpenses.dueDate}</Form.Label>
         <Form.Control
           type="date"
           value={convertToDateInputFormat(dueDate)}
@@ -101,7 +102,7 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
 
       <FormSelect
         controlId="formExpensePurpose"
-        label="Purpose"
+        label={t.common.purpose}
         value={assetPurpose_id}
         onChange={(e) => setAssetPurposeId(Number(e.target.value))}
         options={assetPurposes}
@@ -109,7 +110,7 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
       />
 
       <Form.Group className="mb-3" controlId="formExpenseAmount">
-        <Form.Label>Amount</Form.Label>
+        <Form.Label>{t.common.amount}</Form.Label>
         <AmountInput
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
@@ -117,7 +118,7 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formExpenseNotes">
-        <Form.Label>Notes</Form.Label>
+        <Form.Label>{t.common.notes}</Form.Label>
         <Form.Control
           as="textarea"
           rows={3}
@@ -130,7 +131,7 @@ function UpcomingExpenseForm({ item, onSave, onHide, show }: UpcomingExpenseForm
       <Form.Group className="mb-3" controlId="formExpenseCompleted">
         <Form.Check
           type="checkbox"
-          label="Mark as Completed"
+          label={t.upcomingExpenses.completed}
           checked={isCompleted}
           onChange={(e) => setIsCompleted(e.target.checked)}
         />
@@ -163,7 +164,7 @@ export default function UpcomingExpensesPage() {
         <Col xs={12} md={4}>
           <Card className="h-100 border-0 shadow-sm bg-body-secondary">
             <Card.Body className="d-flex flex-column justify-content-center py-2">
-              <Card.Subtitle className="text-muted small">Total Pending</Card.Subtitle>
+              <Card.Subtitle className="text-muted small">{t.upcomingExpenses.totalPending}</Card.Subtitle>
               <Card.Title className="mb-0 fs-4 fw-bold text-primary">{toLocalCurrency(totalPending)}</Card.Title>
             </Card.Body>
           </Card>
@@ -171,7 +172,7 @@ export default function UpcomingExpensesPage() {
         <Col xs={12} md={8}>
           <Card className="h-100 border-0 shadow-sm">
             <Card.Body className="py-2">
-              <Card.Subtitle className="text-muted small mb-2">By Purpose</Card.Subtitle>
+              <Card.Subtitle className="text-muted small mb-2">{t.upcomingExpenses.byPurpose}</Card.Subtitle>
               <div className="d-flex flex-wrap gap-2">
                 {totalsByPurpose.map((p) => {
                   const details = getKeywordDetails(p.name);
@@ -183,7 +184,7 @@ export default function UpcomingExpensesPage() {
                     </Badge>
                   );
                 })}
-                {totalsByPurpose.length === 0 && <span className="text-muted small">No pending expenses</span>}
+                {totalsByPurpose.length === 0 && <span className="text-muted small">{t.upcomingExpenses.noPending}</span>}
               </div>
             </Card.Body>
           </Card>
@@ -217,7 +218,7 @@ export default function UpcomingExpensesPage() {
 
   return (
     <BasePage<UpcomingExpense>
-      title="Upcoming Expenses"
+      title={t.upcomingExpenses.title}
       data={[...expenses].sort((a, b) => {
         const dateA = convertToDateInputFormat(a.dueDate);
         const dateB = convertToDateInputFormat(b.dueDate);
@@ -243,7 +244,7 @@ export default function UpcomingExpensesPage() {
       columns={[
         {
           field: "isCompleted",
-          headerName: "Status",
+          headerName: t.common.status,
           renderCell: (item) => (
             <Button
               variant="link"
@@ -261,10 +262,10 @@ export default function UpcomingExpensesPage() {
             </Button>
           ),
         },
-        { field: "title", headerName: "Title" },
+        { field: "title", headerName: t.common.title },
         {
           field: "dueDate",
-          headerName: "Due Date",
+          headerName: t.upcomingExpenses.dueDate,
           renderCell: (item) => (
             <span className={item.isCompleted ? "text-decoration-line-through text-muted" : ""}>
               {item.dueDate}
@@ -273,7 +274,7 @@ export default function UpcomingExpensesPage() {
         },
         {
           field: "assetPurpose_id",
-          headerName: "Purpose",
+          headerName: t.common.purpose,
           renderCell: (item) => {
             const name = getPurposeName(item.assetPurpose_id);
             const details = getKeywordDetails(name);
@@ -282,7 +283,7 @@ export default function UpcomingExpensesPage() {
         },
         {
           field: "amount",
-          headerName: "Amount",
+          headerName: t.common.amount,
           renderCell: (item) => (
             <span className={item.isCompleted ? "text-decoration-line-through text-muted" : ""}>
               {toLocalCurrency(item.amount)}

@@ -2,6 +2,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import { Card, Accordion, ListGroup } from "react-bootstrap";
 import { toLocalCurrency } from "@/utils/numberUtils";
+import { t } from "@/utils/localization";
+import { FINANCIAL_CATEGORIES } from "@/utils/constants";
 
 type TargetNode = {
   key: string;
@@ -34,7 +36,7 @@ export default function CashFlowDiagram() {
     cashFlows.forEach((cf) => {
       // Determine Source Node
       let sourceKey = "unassigned-source";
-      let sourceName = "Unassigned Source";
+      let sourceName = t.cashFlow.unassignedSource;
       let sourceColor = "#999999";
 
       if (cf.fromAccountId || cf.income_id) {
@@ -51,12 +53,12 @@ export default function CashFlowDiagram() {
         const incAcc = inc
           ? accounts.find((a) => a.id === inc.accounts_id)
           : null;
-        const bankName = acc?.bank || incAcc?.bank || "Unknown Bank";
+        const bankName = acc?.bank || incAcc?.bank || t.cashFlow.unknownBank;
 
         const incItemStr = inc && inc.item ? ` - ${inc.item}` : "";
 
         sourceKey = `src-${acc?.id || "none"}-${inc?.id || "none"}`;
-        sourceName = `${holder?.name || "Unknown"} - ${bankName}${incItemStr}`;
+        sourceName = `${holder?.name || t.cashFlow.unknown} - ${bankName}${incItemStr}`;
         sourceColor = inc ? "#4CAF50" : "#4285F4"; // Green if it has income, Blue otherwise
       }
 
@@ -79,29 +81,29 @@ export default function CashFlowDiagram() {
 
       if (purpose) {
         const pType = purpose.type.toLowerCase();
-        if (pType === "need") targetColor = "#FF6B6B"; // Red
-        else if (pType === "want") targetColor = "#FFD166"; // Yellow
-        else if (pType === "savings") targetColor = "#06D6A0"; // Green
+        if (pType === FINANCIAL_CATEGORIES.NEED) targetColor = "#FF6B6B"; // Red
+        else if (pType === FINANCIAL_CATEGORIES.WANT) targetColor = "#FFD166"; // Yellow
+        else if (pType === FINANCIAL_CATEGORIES.SAVINGS) targetColor = "#06D6A0"; // Green
 
         targetType = pType;
       }
 
       let targetKey = `item-${cf.item}`;
-      let targetName = `${cf.item || "Unknown"}`;
+      let targetName = `${cf.item || t.cashFlow.unknown}`;
       let targetAccountName = "";
 
       if (cf.accounts_id) {
         const tAcc = accounts.find((a) => a.id === cf.accounts_id);
         const tHolder = holders.find((h) => h.id === tAcc?.holders_id);
         if (tAcc) {
-          targetAccountName = `${tHolder?.name || "Unknown"} - ${tAcc.bank}`;
+          targetAccountName = `${tHolder?.name || t.cashFlow.unknown} - ${tAcc.bank}`;
         }
       }
 
       if (cf.goal_id) {
         const goal = goals.find((g) => g.id === cf.goal_id);
         targetKey = `goal-${cf.goal_id}`;
-        targetName = goal ? `${goal.name}` : "Unknown Goal";
+        targetName = goal ? `${goal.name}` : t.cashFlow.unknownGoal;
         targetColor = targetColor !== "#FFB347" ? targetColor : "#1ABC9C";
         targetType = targetType !== "item" ? targetType : "goal";
       } else if (
@@ -115,7 +117,7 @@ export default function CashFlowDiagram() {
         targetKey = `account-${cf.accounts_id}-${cf.item || ""}`;
         
         if (!cf.item || cf.item.trim() === "") {
-          targetName = acc ? `${holder?.name} - ${acc.bank}` : "Unknown Bank";
+          targetName = acc ? `${holder?.name} - ${acc.bank}` : t.cashFlow.unknownBank;
         }
         
         targetColor = targetColor !== "#FFB347" ? targetColor : "#4285F4";
@@ -152,7 +154,7 @@ export default function CashFlowDiagram() {
 
   return (
     <Card className="mb-4 shadow-sm">
-      <Card.Header as="h6">Cash Flow Breakdown</Card.Header>
+      <Card.Header as="h6">{t.cashFlow.breakdownTitle}</Card.Header>
       <Card.Body className="p-0">
         <Accordion alwaysOpen>
           {data.map((source) => (

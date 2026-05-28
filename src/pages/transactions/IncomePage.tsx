@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import type { Income } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
+import { t } from "@/utils/localization";
 
 interface IncomeFormProps {
   show: boolean;
@@ -43,11 +44,11 @@ function IncomeForm({ item, onSave, onHide, show }: IncomeFormProps) {
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Income" : "Add Income"}
+      title={item ? t.income.editIncome : t.income.addIncome}
       isValid={!!item_name}
     >
       <Form.Group className="mb-3" controlId="formIncomeItem">
-        <Form.Label>Item</Form.Label>
+        <Form.Label>{t.income.incomeSource}</Form.Label>
         <Form.Control
           type="text"
           value={item_name}
@@ -59,7 +60,7 @@ function IncomeForm({ item, onSave, onHide, show }: IncomeFormProps) {
       </Form.Group>
       <FormSelect
         controlId="formIncomeHolder"
-        label="Holder"
+        label={t.income.holder}
         value={holders_id}
         onChange={(e) => {
           setHoldersId(Number(e.target.value));
@@ -80,7 +81,7 @@ function IncomeForm({ item, onSave, onHide, show }: IncomeFormProps) {
         defaultText="Select Account"
       />
       <Form.Group className="mb-3" controlId="formIncomeMonthly">
-        <Form.Label>Monthly Amount</Form.Label>
+        <Form.Label>{t.income.monthlyAmount}</Form.Label>
         <AmountInput
           value={monthly}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -121,7 +122,7 @@ export default function IncomePage() {
 
   return (
     <BasePage<Income>
-      title="Income"
+      title={t.income.title}
       data={[...incomes].sort((a, b) => (a.holders_id || 0) - (b.holders_id || 0))}
       groupBy={(item) => {
         const name = getHolderName(item.holders_id);
@@ -133,7 +134,7 @@ export default function IncomePage() {
       groupSort={(a, b) => Number(a) - Number(b)}
       groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + Number(item.monthly), 0))}
       columns={[
-        { field: "item", headerName: "Item" },
+        { field: "item", headerName: t.income.incomeSource },
         {
           field: "accounts_id",
           headerName: "Account",
@@ -141,7 +142,7 @@ export default function IncomePage() {
         },
         {
           field: "monthly",
-          headerName: "Monthly Amount",
+          headerName: t.income.monthlyAmount,
           renderCell: (item) => toLocalCurrency(Number(item.monthly)),
         },
       ]}

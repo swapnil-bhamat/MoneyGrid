@@ -10,6 +10,7 @@ import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { FaInfoCircle } from "react-icons/fa";
 import { getDynamicBgClass } from "@/utils/colorUtils";
+import { t } from "@/utils/localization";
 
 interface CashFlowFormProps {
   show: boolean;
@@ -57,11 +58,11 @@ function CashFlowForm({ item, onSave, onHide, show }: CashFlowFormProps) {
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Cash Flow" : "Add Cash Flow"}
+      title={item ? t.cashFlow.editFlow : t.cashFlow.addFlow}
       isValid={!!item_name}
     >
       <Form.Group className="mb-3" controlId="formItem">
-        <Form.Label>Item</Form.Label>
+        <Form.Label>{t.cashFlow.flowItem}</Form.Label>
         <Form.Control
           type="text"
           value={item_name}
@@ -73,42 +74,42 @@ function CashFlowForm({ item, onSave, onHide, show }: CashFlowFormProps) {
       </Form.Group>
       <FormSelect
         controlId="formHolder"
-        label="Holder"
+        label={t.income.holder || "Holder"}
         value={holders_id}
         onChange={(e) => {
           setHoldersId(Number(e.target.value));
           setAccountsId(0);
         }}
         options={holders}
-        defaultText="Select Holder"
+        defaultText={t.common.selectHolder || "Select Holder"}
       />
 
       <FormSelect
         controlId="formFromAccount"
-        label="From Account (optional)"
+        label={`${t.cashFlow.transferFrom || "From Account"} (${t.common.optional || "optional"})`}
         value={fromAccountId ?? 0}
         onChange={(e) => setFromAccountId(Number(e.target.value))}
         options={accounts.map((acc) => {
           const holder = holders.find(h => h.id === acc.holders_id);
-          return { id: acc.id!, name: `${acc.bank} (${holder?.name || 'Unknown'})` };
+          return { id: acc.id!, name: `${acc.bank} (${holder?.name || t.common.unknown || 'Unknown'})` };
         })}
-        defaultText="Select From Account (Optional)"
+        defaultText={`${t.common.select || "Select"} ${t.cashFlow.transferFrom || "From Account"} (${t.common.optional || "Optional"})`}
       />
 
       <FormSelect
         controlId="formAccount"
-        label="To Account"
+        label={t.cashFlow.toAccount || "To Account"}
         value={accounts_id}
         onChange={(e) => setAccountsId(Number(e.target.value))}
         options={accounts.map((acc) => {
           const holder = holders.find(h => h.id === acc.holders_id);
-          return { id: acc.id!, name: `${acc.bank} (${holder?.name || 'Unknown'})` };
+          return { id: acc.id!, name: `${acc.bank} (${holder?.name || t.common.unknown || 'Unknown'})` };
         })}
-        defaultText="Select To Account"
+        defaultText={`${t.common.select || "Select"} ${t.cashFlow.toAccount || "To Account"}`}
       />
 
       <Form.Group className="mb-3" controlId="formMonthly">
-        <Form.Label>Monthly Amount</Form.Label>
+        <Form.Label>{t.cashFlow.monthlyAmount}</Form.Label>
         <AmountInput
           value={monthly}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,32 +121,32 @@ function CashFlowForm({ item, onSave, onHide, show }: CashFlowFormProps) {
 
       <FormSelect
         controlId="formAssetPurpose"
-        label="Asset Purpose"
+        label={t.cashFlow.assetPurpose || "Asset Purpose"}
         value={assetPurpose_id}
         onChange={(e) => setAssetPurposeId(Number(e.target.value))}
         options={assetPurposes}
-        defaultText="Select Asset Purpose"
+        defaultText={t.common.selectAssetPurpose || "Select Asset Purpose"}
       />
 
       <FormSelect
         controlId="formGoal"
-        label="Goal (optional)"
+        label={`${t.assets.goal || "Goal"} (${t.common.optional || "optional"})`}
         value={goal_id ?? 0}
         onChange={(e) => setGoalId(Number(e.target.value))}
         options={goals}
-        defaultText="Select Goal (Optional)"
+        defaultText={t.common.selectGoal || "Select Goal (Optional)"}
       />
 
       <FormSelect
         controlId="formIncome"
-        label="Income Source (optional)"
+        label={`${t.income.incomeSource || "Income Source"} (${t.common.optional || "optional"})`}
         value={income_id ?? 0}
         onChange={(e) => setIncomeId(Number(e.target.value))}
         options={incomes.map((inc) => {
           const holder = holders.find(h => h.id === inc.holders_id);
-          return { id: inc.id!, name: `${inc.item} (${holder?.name || 'Unknown'})` };
+          return { id: inc.id!, name: `${inc.item} (${holder?.name || t.common.unknown || 'Unknown'})` };
         })}
-        defaultText="Select Income Source (Optional)"
+        defaultText={t.common.selectIncomeSource || "Select Income Source (Optional)"}
       />
 
     </FormModal>
@@ -190,7 +191,7 @@ export default function CashFlowPage() {
     const account = accounts.find((a) => a.id === id);
     if (!account) return "";
     const holder = holders.find((h) => h.id === account.holders_id);
-    return `${account.bank} (${holder?.name || "Unknown"})`;
+    return `${account.bank} (${holder?.name || t.common.unknown || "Unknown"})`;
   };
 
   const getHolderName = (id: number) => {
@@ -217,47 +218,47 @@ export default function CashFlowPage() {
   return (
     <>
       <BasePage<CashFlow>
-        title="Monthly Cash Flow"
+        title={t.cashFlow.title}
         data={[...cashFlows].sort((a, b) => (a.holders_id || 0) - (b.holders_id || 0))}
         groupBy={(item) => {
           const name = getHolderName(item.holders_id);
           return {
             key: String(item.holders_id),
-            label: name || "Unknown Holder"
+            label: name || t.common.unknown || "Unknown Holder"
           };
         }}
         groupSort={(a, b) => Number(a) - Number(b)}
         groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + Number(item.monthly), 0))}
         columns={[
-          { field: "item", headerName: "Item" },
+          { field: "item", headerName: t.cashFlow.flowItem },
           {
             field: "fromAccountId",
-            headerName: "From Account",
+            headerName: t.cashFlow.transferFrom,
             renderCell: (item) => getFullAccountName(item.fromAccountId),
           },
           {
             field: "accounts_id",
-            headerName: "To Account",
+            headerName: t.cashFlow.toAccount || "To Account",
             renderCell: (item) => getFullAccountName(item.accounts_id),
           },
           {
             field: "monthly",
-            headerName: "Monthly Amount",
+            headerName: t.cashFlow.monthlyAmount,
             renderCell: (item) => toLocalCurrency(item.monthly),
           },
           {
             field: "assetPurpose_id",
-            headerName: "Asset Purpose",
+            headerName: t.cashFlow.assetPurpose || "Asset Purpose",
             renderCell: (item) => getAssetPurposeName(item.assetPurpose_id),
           },
           {
             field: "income_id",
-            headerName: "Income Source",
+            headerName: t.cashFlow.incomeLink,
             renderCell: (item) => getIncomeName(item.income_id),
           },
           {
             field: "goal_id",
-            headerName: "Goal",
+            headerName: t.cashFlow.goalLink,
             renderCell: (item) => getGoalName(item.goal_id),
           },
         ]}
@@ -278,14 +279,14 @@ export default function CashFlowPage() {
       />
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Allocation Gap?</Modal.Title>
+          <Modal.Title>{t.cashFlow.allocationGap || "Allocation Gap?"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Row className="mb-2">
             <Col md={4} className="mb-2">
               <Card className="h-100">
                 <Card.Body>
-                  <Card.Title>Monthly Income</Card.Title>
+                  <Card.Title>{t.cashFlow.totalInflow}</Card.Title>
                   <Card.Text className="h4 text-primary">
                     {toLocalCurrency(totalMonthlyIncome)}
                   </Card.Text>
@@ -295,7 +296,7 @@ export default function CashFlowPage() {
             <Col md={4} className="mb-2">
               <Card className="h-100">
                 <Card.Body>
-                  <Card.Title>Total Allocated</Card.Title>
+                  <Card.Title>{t.cashFlow.totalOutflow}</Card.Title>
                   <Card.Text className="h4 text-info">
                     {toLocalCurrency(totalAllocated)}
                   </Card.Text>
@@ -305,7 +306,7 @@ export default function CashFlowPage() {
             <Col md={4} className="mb-2">
               <Card className="h-100">
                 <Card.Body>
-                  <Card.Title>Gap</Card.Title>
+                  <Card.Title>{t.cashFlow.netSavings}</Card.Title>
                   <Card.Text
                     className={`h4 ${
                       gap === 0 ? "text-success" : "text-danger"

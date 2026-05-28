@@ -14,6 +14,7 @@ import Gauge from "@/components/common/Gauge";
 import CashFlowDiagram from "@/components/analytics/CashFlowDiagram";
 import { toLocalCurrency } from "@/utils/numberUtils";
 import { useMobile } from "@/hooks/useMobile";
+import { t } from "@/utils/localization";
 
 
 import DailyTipCard from "@/components/widgets/DailyTipCard";
@@ -109,30 +110,7 @@ export default function Dashboard() {
           <Col md={12}>
             <Card className="mb-4 shadow">
               <Card.Header as="h6">
-                Monthly Income (
-                <span
-                  className="text-info"
-                  role="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = "/cash-flow";
-                  }}
-                >
-                  {toLocalCurrency(withPercentage[0]?.total)}
-                </span>
-                ) vs Expense Categories vs{" "}
-                <strong>
-                  <span
-                    className="text-info"
-                    role="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = "/knowledge-centre";
-                    }}
-                  >
-                    50:30:20 Rule
-                  </span>
-                </strong>
+                {t.dashboard.monthlyIncomeVsExpenses}
               </Card.Header>
               <Card.Body>
                 <Row xs={1} md={3} className="g-4">
@@ -157,7 +135,7 @@ export default function Dashboard() {
           <Col md={12}>
             {goalProgress.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Financial Goals Progress</Card.Header>
+                <Card.Header as="h6">{t.dashboard.financialGoalsProgress}</Card.Header>
                 <Card.Body>
                   <GoalProgressChart data={goalProgress} />
                 </Card.Body>
@@ -170,7 +148,7 @@ export default function Dashboard() {
           <Col md={4}>
             {incomeAllocation && incomeAllocation.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Income Breakdown</Card.Header>
+                <Card.Header as="h6">{t.dashboard.incomeBreakdown}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -206,7 +184,7 @@ export default function Dashboard() {
           <Col md={4}>
             {savingsCashFlow.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Monthly Cash Flow (Savings)</Card.Header>
+                <Card.Header as="h6">{t.dashboard.monthlyCashFlow}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -242,7 +220,7 @@ export default function Dashboard() {
           <Col md={4}>
             {assetClassAllocation.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Class</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationClass}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -279,7 +257,7 @@ export default function Dashboard() {
             {projectedAssetGrowth.length > 0 && (
               <Card className="mb-4 shadow">
                 <Card.Header as="h6">
-                  Projected Asset Growth (1 Year)
+                  {t.dashboard.projectedGrowth}
                 </Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -333,7 +311,7 @@ export default function Dashboard() {
           <Col md={4}>
             {assetAllocationByBucket.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Buckets</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationBucket}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -371,7 +349,7 @@ export default function Dashboard() {
           <Col md={4}>
             {assetAllocationByGoal.length > 0 && (
               <Card className="mb-4 shadow">
-                <Card.Header as="h6">Asset Allocation by Goal</Card.Header>
+                <Card.Header as="h6">{t.dashboard.assetAllocationGoal}</Card.Header>
                 <Card.Body style={{ height: 350 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

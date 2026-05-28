@@ -5,11 +5,12 @@ import type { AssetHolding } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
 import FormModal from "@/components/common/FormModal";
 import { Form } from "react-bootstrap";
-import { toLocalCurrency } from "@/utils/numberUtils";
+import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
 import { getKeywordDetails } from "@/utils/keywordRegistry";
+import { t } from "@/utils/localization";
 
 import { fetchGoldData } from "@/services/marketData";
 
@@ -32,7 +33,7 @@ function AssetHoldingForm({
   const [assetSubClasses_id, setAssetSubClassesId] = useState(
     item?.assetSubClasses_id ?? 0
   );
-  const [goals_id, setGoalsId] = useState(item?.goals_id ?? null);
+  const [goals_id, setGoalsId] = useState<number | null>(item?.goals_id ?? null);
   const [holders_id, setHoldersId] = useState(item?.holders_id ?? 0);
   const [assetDetail, setAssetDetail] = useState(item?.assetDetail ?? "");
   const [existingAllocation, setExistingAllocation] = useState(
@@ -45,7 +46,7 @@ function AssetHoldingForm({
 
   // Market Link State
   const [marketType, setMarketType] = useState<"GOLD" | "NONE">(
-    (item?.marketType === "GOLD" ? "GOLD" : "NONE")
+    (item?.marketType as "GOLD" | "NONE") ?? "NONE"
   );
   const [grams, setGrams] = useState(item?.grams ?? 0);
   const [goldPurity, setGoldPurity] = useState<"22K" | "24K">(
@@ -109,63 +110,63 @@ function AssetHoldingForm({
       show={show}
       onHide={onHide}
       onSubmit={handleSubmit}
-      title={item ? "Edit Asset Holding" : "Add Asset Holding"}
+      title={item ? t.assets.editAsset : t.assets.addAsset}
       isValid={!!assetClasses_id}
     >
       <FormSelect
         controlId="formAssetClass"
-        label="Class"
+        label={t.assets.class}
         value={assetClasses_id}
         onChange={(e) => {
           setAssetClassesId(Number(e.target.value));
           setAssetSubClassesId(0);
         }}
         options={assetClasses}
-        defaultText="Select Class"
+        defaultText={t.common.selectAssetClass || "Select Class"}
       />
 
       <FormSelect
         controlId="formAssetSubClass"
-        label="Sub Class"
+        label={t.assets.subClass}
         value={assetSubClasses_id}
         onChange={(e) => setAssetSubClassesId(Number(e.target.value))}
         options={assetSubClasses.filter(
           (asc) => asc.assetClasses_id === assetClasses_id
         )}
-        defaultText="Select Sub Class"
+        defaultText={t.common.selectAssetSubClass || "Select Sub Class"}
       />
       
       {/* Market Link Section */}
       <div className="p-3 mb-3 rounded border">
-        <h6 className="mb-3">Market Link</h6>
+        <h6 className="mb-3">{t.assets.marketLink}</h6>
         <FormSelect
           controlId="formMarketType"
-          label="Link to Market Data"
+          label={t.assets.linkToMarket}
           value={marketType}
           onChange={(e) => setMarketType(e.target.value as "GOLD" | "NONE")}
           options={[
-            { id: "NONE", name: "None (Manual Entry)" },
-            { id: "GOLD", name: "Gold" },
+            { id: "NONE", name: t.assets.noneManualEntry || "None (Manual Entry)" },
+            { id: "GOLD", name: t.assets.gold || "Gold" },
           ]}
-          defaultText="Select Link Type"
+          defaultText={t.assets.selectLinkType || "Select Link Type"}
         />
 
         {marketType === "GOLD" && (
           <>
             <FormSelect
               controlId="formGoldPurity"
-              label="Purity"
+              label={t.assets.purity}
               value={goldPurity}
               onChange={(e) => setGoldPurity(e.target.value as "22K" | "24K")}
               options={[
-                { id: "24K", name: "24K (99.9%)" },
-                { id: "22K", name: "22K (91.6%)" },
+                { id: "24K", name: t.assets.gold24k || "24K (99.9%)" },
+                { id: "22K", name: t.assets.gold22k || "22K (91.6%)" },
               ]}
-              defaultText="Select Purity"
+              defaultText={t.assets.selectPurity || "Select Purity"}
             />
 
             <Form.Group className="mb-3" controlId="formGrams">
-                <Form.Label>Grams {goldRates && <small className="text-muted">(Rate: ₹{goldRates[goldPurity]?.toFixed(2)}/g)</small>}</Form.Label>
+                <Form.Label>{t.assets.grams} {goldRates && <small className="text-muted">(Rate: {getActiveCurrency().symbol}{goldRates[goldPurity]?.toFixed(2)}/g)</small>}</Form.Label>
                 <Form.Control
                 type="number"
                 step="0.01"
@@ -180,7 +181,7 @@ function AssetHoldingForm({
       </div>
 
       <Form.Group className="mb-3" controlId="formExistingAllocation">
-        <Form.Label>Existing Allocation (Value)</Form.Label>
+        <Form.Label>{t.assets.existingAllocation}</Form.Label>
         <AmountInput
           value={existingAllocation}
           readOnly={marketType !== "NONE"}
@@ -189,31 +190,31 @@ function AssetHoldingForm({
             setExistingAllocation(Number(e.target.value))
           }
         />
-        {marketType !== "NONE" && <Form.Text className="text-muted">Auto-calculated based on market rate</Form.Text>}
+        {marketType !== "NONE" && <Form.Text className="text-muted">{t.assets.autoCalculatedText || "Auto-calculated based on market rate"}</Form.Text>}
       </Form.Group>
 
       <FormSelect
         controlId="formGoal"
-        label="Goal"
+        label={t.assets.goal}
         value={goals_id ?? ""}
         onChange={(e) =>
           setGoalsId(e.target.value ? Number(e.target.value) : null)
         }
         options={goals}
-        defaultText="None"
+        defaultText={t.common.none || "None"}
       />
 
       <FormSelect
         controlId="formHolder"
-        label="Holder"
+        label={t.assets.holder}
         value={holders_id}
         onChange={(e) => setHoldersId(Number(e.target.value))}
         options={holders}
-        defaultText="Select Holder"
+        defaultText={t.common.selectHolder || "Select Holder"}
       />
 
       <Form.Group className="mb-3" controlId="formAssetDetail">
-        <Form.Label>Detail</Form.Label>
+        <Form.Label>{t.assets.detail}</Form.Label>
         <Form.Control
           type="text"
           value={assetDetail}
@@ -223,7 +224,7 @@ function AssetHoldingForm({
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formSIP">
-        <Form.Label>SIP Amount</Form.Label>
+        <Form.Label>{t.assets.sipAmount}</Form.Label>
         <AmountInput
           value={sip}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -234,24 +235,24 @@ function AssetHoldingForm({
 
       <FormSelect
         controlId="formSIPType"
-        label="SIP Type"
+        label={t.assets.sipType}
         value={sipTypes_id}
         onChange={(e) => setSipTypesId(Number(e.target.value))}
         options={sipTypes}
-        defaultText="Select SIP Type"
+        defaultText={t.common.selectSipType || "Select SIP Type"}
       />
 
       <FormSelect
         controlId="formBucket"
-        label="SWP Bucket"
+        label={t.assets.swpBucket}
         value={buckets_id}
         onChange={(e) => setBucketsId(Number(e.target.value))}
         options={buckets}
-        defaultText="Select SWP Bucket"
+        defaultText={t.common.selectSwpBucket || "Select SWP Bucket"}
       />
 
       <Form.Group className="mb-3" controlId="formComments">
-        <Form.Label>Comments</Form.Label>
+        <Form.Label>{t.common.comments}</Form.Label>
         <Form.Control
           as="textarea"
           rows={4}
@@ -298,7 +299,7 @@ export default function AssetsHoldingsPage() {
   };
 
   const getGoalName = (id: number | null) => {
-    if (!id) return "None";
+    if (!id) return t.common.none || "None";
     const goal = goals.find((g) => g.id === id);
     return goal?.name ?? "";
   };
@@ -320,38 +321,38 @@ export default function AssetsHoldingsPage() {
 
   return (
     <BasePage<AssetHolding>
-      title="Asset Holdings"
+      title={t.assets.title}
       data={[...assetsHoldings].sort((a, b) => (a.assetClasses_id || 0) - (b.assetClasses_id || 0))}
       groupBy={(item) => {
         const name = getAssetClassName(item.assetClasses_id);
         const details = getKeywordDetails(name);
         return {
           key: String(item.assetClasses_id),
-          label: name ? `${details.icon} ${name}` : "Unknown Class"
+          label: name ? `${details.icon} ${name}` : (t.assets.unknownClass || "Unknown Class")
         };
       }}
       groupSort={(a, b) => Number(a) - Number(b)}
       groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.existingAllocation, 0))}
       columns={[
-        { field: "assetDetail", headerName: "Detail" },
+        { field: "assetDetail", headerName: t.assets.detail },
         {
           field: "assetSubClasses_id",
-          headerName: "Sub Class",
+          headerName: t.assets.subClass,
           renderCell: (item) => getAssetSubClassName(item.assetSubClasses_id),
         },
         {
           field: "goals_id",
-          headerName: "Goal",
+          headerName: t.assets.goal,
           renderCell: (item) => getGoalName(item.goals_id),
         },
         {
           field: "holders_id",
-          headerName: "Holder",
+          headerName: t.assets.holder,
           renderCell: (item) => getHolderName(item.holders_id),
         },
         {
           field: "marketType",
-          headerName: "Quantity",
+          headerName: t.common.quantity,
           renderCell: (item) => {
             if (item.marketType === "GOLD" && item.grams) {
               return `${item.grams} g`;
@@ -361,25 +362,25 @@ export default function AssetsHoldingsPage() {
         },
         {
           field: "existingAllocation",
-          headerName: "Existing Allocation",
+          headerName: t.assets.existingAllocation,
           renderCell: (item) => toLocalCurrency(item.existingAllocation),
         },
         {
           field: "sip",
-          headerName: "SIP",
+          headerName: t.assets.sipAmount,
           renderCell: (item) => toLocalCurrency(item.sip),
         },
         {
           field: "sipTypes_id",
-          headerName: "SIP Type",
+          headerName: t.assets.sipType,
           renderCell: (item) => getSipTypeName(item.sipTypes_id),
         },
         {
           field: "buckets_id",
-          headerName: "SWP Bucket",
+          headerName: t.assets.swpBucket,
           renderCell: (item) => getBucketName(item.buckets_id),
         },
-        { field: "comments", headerName: "Additional Information" },
+        { field: "comments", headerName: t.common.additionalInfo },
       ]}
       onAdd={handleAdd}
       onEdit={handleEdit}

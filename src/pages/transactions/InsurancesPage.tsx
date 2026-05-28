@@ -9,6 +9,7 @@ import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
+import { t } from "@/utils/localization";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 import HolderSelect from "@/components/common/HolderSelect";
@@ -108,7 +109,7 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formInsuranceStartDate">
-        <Form.Label>Start Date</Form.Label>
+        <Form.Label>{t.liabilities.startDate || "Start Date"}</Form.Label>
         <Form.Control
           type="date"
           value={convertToDateInputFormat(startDate)}
@@ -138,7 +139,7 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formInsuranceDescription">
-        <Form.Label>Description</Form.Label>
+        <Form.Label>{t.common.notes || "Description"}</Form.Label>
         <Form.Control
           as="textarea"
           rows={2}
@@ -209,7 +210,7 @@ export default function InsurancesPage() {
         },
         {
           field: "description",
-          headerName: "Description",
+          headerName: t.common.notes || "Description",
           renderCell: (item) => item.description || "-",
         },
       ]}
