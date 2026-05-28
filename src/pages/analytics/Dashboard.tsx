@@ -182,42 +182,6 @@ export default function Dashboard() {
             )}
           </Col>
           <Col md={4}>
-            {savingsCashFlow.length > 0 && (
-              <Card className="mb-4 shadow">
-                <Card.Header as="h6">{t.dashboard.monthlyCashFlow}</Card.Header>
-                <Card.Body style={{ height: 350 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={savingsCashFlow}
-                        dataKey="value"
-                        nameKey="label"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        labelLine={false}
-                        label={renderCustomizedLabel}
-                      >
-                        {savingsCashFlow.map((_, index) => (
-                          <Cell
-                            key={`cell-savings-${index}`}
-                            fill={savingsColors[index % savingsColors.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
-                        }
-                      />
-                      {!isMobile && <Legend />}
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Card.Body>
-              </Card>
-            )}
-          </Col>
-          <Col md={4}>
             {assetClassAllocation.length > 0 && (
               <Card className="mb-4 shadow">
                 <Card.Header as="h6">{t.dashboard.assetAllocationClass}</Card.Header>
@@ -308,6 +272,42 @@ export default function Dashboard() {
           </Col>
         </Row>
         <Row>
+          <Col md={4}>
+            {savingsCashFlow.length > 0 && (
+              <Card className="mb-4 shadow">
+                <Card.Header as="h6">{t.dashboard.monthlyCashFlow}</Card.Header>
+                <Card.Body style={{ height: 350 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={savingsCashFlow}
+                        dataKey="value"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                      >
+                        {savingsCashFlow.map((_, index) => (
+                          <Cell
+                            key={`cell-savings-${index}`}
+                            fill={savingsColors[index % savingsColors.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number | undefined) =>
+                          toLocalCurrency(value)
+                        }
+                      />
+                      {!isMobile && <Legend />}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            )}
+          </Col>
           <Col md={4}>
             {assetAllocationByBucket.length > 0 && (
               <Card className="mb-4 shadow">

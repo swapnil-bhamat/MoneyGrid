@@ -57,43 +57,55 @@ const routes: RouteObject[] = [
   },
 ];
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { getAppConfig, saveAppConfig, CONFIG_KEYS } from "@/services/configService";
+import { STORAGE_KEYS } from "@/utils/constants";
+import packageJson from "../../package.json";
+const APP_VERSION = packageJson.version;
+
+const isNewerVersion = (v1: string, v2: string): boolean => {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+    if (p1 > p2) return true;
+    if (p1 < p2) return false;
+  }
+  return false;
+};
 
 const router = createBrowserRouter(routes);
 
 function App() {
-  const [initialized, setInitialized] = useState(false);
-
   useEffect(() => {
     const syncCurrency = async () => {
       try {
         const currencyInDb = await getAppConfig(CONFIG_KEYS.BASE_CURRENCY);
         if (currencyInDb) {
-          localStorage.setItem("moneygrid_currency", currencyInDb);
+          localStorage.setItem(STORAGE_KEYS.CURRENCY, currencyInDb);
         } else {
           // Default to INR (Rupees)
           await saveAppConfig(CONFIG_KEYS.BASE_CURRENCY, "INR");
-          localStorage.setItem("moneygrid_currency", "INR");
+          localStorage.setItem(STORAGE_KEYS.CURRENCY, "INR");
         }
       } catch (err) {
         console.error("Failed to sync currency config", err);
-      } finally {
-        setInitialized(true);
+      }
+    };
+    const syncVersion = async () => {
+      try {
+        const versionInDb = await getAppConfig(CONFIG_KEYS.APP_VERSION);
+        if (!versionInDb || isNewerVersion(APP_VERSION, versionInDb)) {
+          await saveAppConfig(CONFIG_KEYS.APP_VERSION, APP_VERSION);
+        }
+      } catch (err) {
+        console.error("Failed to sync version config", err);
       }
     };
     syncCurrency();
+    syncVersion();
   }, []);
-
-  if (!initialized) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100 bg-dark text-white">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading MoneyGrid...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <ErrorBoundary>
