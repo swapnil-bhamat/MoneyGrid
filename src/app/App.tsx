@@ -57,9 +57,44 @@ const routes: RouteObject[] = [
   },
 ];
 
+import { useEffect, useState } from "react";
+import { getAppConfig, saveAppConfig, CONFIG_KEYS } from "@/services/configService";
+
 const router = createBrowserRouter(routes);
 
 function App() {
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    const syncCurrency = async () => {
+      try {
+        const currencyInDb = await getAppConfig(CONFIG_KEYS.BASE_CURRENCY);
+        if (currencyInDb) {
+          localStorage.setItem("moneygrid_currency", currencyInDb);
+        } else {
+          // Default to INR (Rupees)
+          await saveAppConfig(CONFIG_KEYS.BASE_CURRENCY, "INR");
+          localStorage.setItem("moneygrid_currency", "INR");
+        }
+      } catch (err) {
+        console.error("Failed to sync currency config", err);
+      } finally {
+        setInitialized(true);
+      }
+    };
+    syncCurrency();
+  }, []);
+
+  if (!initialized) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100 bg-dark text-white">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading MoneyGrid...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <AuthProvider>

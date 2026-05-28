@@ -44,6 +44,7 @@ import { MobileCardView } from "@/components/common/MobileCardView";
 import { useTheme } from "@/contexts/themeContext";
 import { usePwaUpdate } from "@/hooks/usePwaUpdate";
 import { Column } from "@/types/ui";
+import { saveAppConfig, CONFIG_KEYS } from "@/services/configService";
 
 // Configuration Pages Imports
 import HoldersPage from '@/pages/accounts/HoldersPage';
@@ -429,6 +430,20 @@ export default function SettingsPage() {
     updateApp
   } = usePwaUpdate();
 
+  const [selectedCurrency, setSelectedCurrency] = useState(() => localStorage.getItem("moneygrid_currency") || "INR");
+
+  const handleCurrencyChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedCurrency(val);
+    localStorage.setItem("moneygrid_currency", val);
+    try {
+      await saveAppConfig(CONFIG_KEYS.BASE_CURRENCY, val);
+    } catch (err) {
+      console.error("Failed to save currency to config DB", err);
+    }
+    window.location.reload();
+  };
+
   // Backup PIN states
   const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
@@ -509,6 +524,24 @@ export default function SettingsPage() {
                   <option value="vapor">Vapor (Cyber Neon Glowing Dark)</option>
                   <option value="yeti">Yeti (Cool Crisp Alpine Blue)</option>
                   <option value="zephyr">Zephyr (Airy Soft Modern Pastels)</option>
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="mt-4">
+                <Form.Label className="h5 mb-1">Base Currency</Form.Label>
+                <p className="text-muted mb-3">
+                  Select your primary currency. The entire platform will format values to match.
+                </p>
+                <Form.Select
+                  value={selectedCurrency}
+                  onChange={handleCurrencyChange}
+                  className="w-100 max-w-sm"
+                  style={{ maxWidth: "350px" }}
+                >
+                  <option value="INR">INR (₹) - Indian Rupee</option>
+                  <option value="USD">USD ($) - United States Dollar</option>
+                  <option value="EUR">EUR (€) - Euro (Europe)</option>
+                  <option value="GBP">GBP (£) - British Pound Sterling</option>
                 </Form.Select>
               </Form.Group>
             </Card.Body>

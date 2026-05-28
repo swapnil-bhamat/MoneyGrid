@@ -10,6 +10,7 @@ import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { BsCheckCircleFill, BsCircle } from "react-icons/bs";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 
@@ -156,15 +157,6 @@ export default function UpcomingExpensesPage() {
       .filter((p) => p.amount > 0);
   }, [pendingExpenses, assetPurposes]);
 
-  const getPurposeBadgeColor = (name: string) => {
-    switch (name) {
-      case "Need": return "danger";
-      case "Want": return "warning";
-      case "Savings": return "success";
-      default: return "secondary";
-    }
-  };
-
   const summary = (
     <div className="p-3">
       <Row className="g-3">
@@ -181,12 +173,16 @@ export default function UpcomingExpensesPage() {
             <Card.Body className="py-2">
               <Card.Subtitle className="text-muted small mb-2">By Purpose</Card.Subtitle>
               <div className="d-flex flex-wrap gap-2">
-                {totalsByPurpose.map((p) => (
-                  <Badge key={p.id} bg={getPurposeBadgeColor(p.name)} className="p-2 fw-normal">
-                    <span className="opacity-75 me-1">{p.name}:</span>
-                    {toLocalCurrency(p.amount)}
-                  </Badge>
-                ))}
+                {totalsByPurpose.map((p) => {
+                  const details = getKeywordDetails(p.name);
+                  return (
+                    <Badge key={p.id} bg={details.color} className="p-2 fw-normal">
+                      <span className="me-1">{details.icon}</span>
+                      <span className="opacity-75 me-1">{p.name}:</span>
+                      {toLocalCurrency(p.amount)}
+                    </Badge>
+                  );
+                })}
                 {totalsByPurpose.length === 0 && <span className="text-muted small">No pending expenses</span>}
               </div>
             </Card.Body>
@@ -280,7 +276,8 @@ export default function UpcomingExpensesPage() {
           headerName: "Purpose",
           renderCell: (item) => {
             const name = getPurposeName(item.assetPurpose_id);
-            return <Badge bg={getPurposeBadgeColor(name)}>{name}</Badge>;
+            const details = getKeywordDetails(name);
+            return <Badge bg={details.color}>{details.icon} {name}</Badge>;
           },
         },
         {

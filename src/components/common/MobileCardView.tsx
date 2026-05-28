@@ -1,6 +1,7 @@
 import { Card, Row, Col, Button } from "react-bootstrap";
 import { BsPencil, BsTrash } from "react-icons/bs";
 import { Column, BaseRecord } from "@/types/ui";
+import { getActiveCurrency } from "@/utils/numberUtils";
 
 interface MobileCardViewProps<T extends BaseRecord> {
   data: T[];
@@ -20,6 +21,7 @@ export const MobileCardView = <T extends BaseRecord>({
   getCardClassName,
 }: MobileCardViewProps<T>) => {
   const showActions = onEdit || onDelete || renderActions;
+  const currency = getActiveCurrency();
   // Separate columns by priority for mobile view
   const primaryColumns = columns.slice(0, 2); // Show first 2 columns prominently
   const secondaryColumns = columns.slice(2); // Rest are secondary
@@ -40,7 +42,7 @@ export const MobileCardView = <T extends BaseRecord>({
                     ? column.renderCell(item)
                     : String(item[column.field]) || "-";
                   const isCurrency =
-                    typeof cellValue === "string" && cellValue.includes("₹");
+                    typeof cellValue === "string" && cellValue.includes(currency.symbol);
 
                   return (
                     <div
@@ -116,7 +118,7 @@ export const MobileCardView = <T extends BaseRecord>({
                     ? column.renderCell(item)
                     : String(item[column.field]) || "-";
                   const isCurrency =
-                    typeof cellValue === "string" && cellValue.includes("₹");
+                    typeof cellValue === "string" && cellValue.includes(currency.symbol);
 
                   return (
                     <Col xs={6} key={String(column.field)}>
