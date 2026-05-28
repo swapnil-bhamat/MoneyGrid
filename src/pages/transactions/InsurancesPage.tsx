@@ -9,6 +9,8 @@ import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
+import { t } from "@/utils/localization";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 import HolderSelect from "@/components/common/HolderSelect";
@@ -108,7 +110,7 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formInsuranceStartDate">
-        <Form.Label>Start Date</Form.Label>
+        <Form.Label>{t.liabilities.startDate || "Start Date"}</Form.Label>
         <Form.Control
           type="date"
           value={convertToDateInputFormat(startDate)}
@@ -138,7 +140,7 @@ function InsuranceForm({ item, onSave, onHide, show }: InsuranceFormProps) {
         />
       </Form.Group>
       <Form.Group className="mb-3" controlId="formInsuranceDescription">
-        <Form.Label>Description</Form.Label>
+        <Form.Label>{t.common.notes || "Description"}</Form.Label>
         <Form.Control
           as="textarea"
           rows={2}
@@ -181,10 +183,14 @@ export default function InsurancesPage() {
     <BasePage<Insurance>
       title="Insurances"
       data={[...insurances].sort((a, b) => a.insuranceType_id - b.insuranceType_id)}
-      groupBy={(item) => ({
-        key: String(item.insuranceType_id),
-        label: getInsuranceTypeName(item.insuranceType_id),
-      })}
+      groupBy={(item) => {
+        const name = getInsuranceTypeName(item.insuranceType_id);
+        const details = getKeywordDetails(name);
+        return {
+          key: String(item.insuranceType_id),
+          label: name ? `${details.icon} ${name}` : "Unknown Type",
+        };
+      }}
       groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.premiumYearly, 0))}
       columns={[
         {
@@ -209,7 +215,7 @@ export default function InsurancesPage() {
         },
         {
           field: "description",
-          headerName: "Description",
+          headerName: t.common.notes || "Description",
           renderCell: (item) => item.description || "-",
         },
       ]}

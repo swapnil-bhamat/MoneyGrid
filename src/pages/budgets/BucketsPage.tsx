@@ -5,6 +5,7 @@ import { db } from "@/infrastructure/db/db";
 import type { Bucket } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
 import FormModal from "@/components/common/FormModal";
+import { t } from "@/utils/localization";
 
 interface BucketFormProps {
   show: boolean;
@@ -78,7 +79,7 @@ export default function BucketsPage() {
 
   return (
     <BasePage<Bucket>
-      title="SWP Buckets"
+      title={t.dashboard.assetAllocationBucket}
       data={buckets}
       columns={[{ field: "name", headerName: "Name" }]}
       onAdd={handleAdd}

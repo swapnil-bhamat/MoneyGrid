@@ -3,6 +3,14 @@ import { db } from "@/infrastructure/db/db";
 import type { AssetPurpose } from "@/infrastructure/db/db";
 import { calculateProjectedValue } from "@/services/projectionService";
 import { calculateRemainingBalance, calculateEMI } from "@/utils/financialUtils";
+import { t } from "@/utils/localization";
+import { FINANCIAL_CATEGORIES, BUDGET_RULES } from "@/utils/constants";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
+
+const capitalize = (str: string): string => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 const getGoalAllocationByName = (
   goals: Array<{ name: string; allocatedAmount: number }>,
@@ -13,29 +21,62 @@ const getGoalAllocationByName = (
     .reduce((sum, goal) => sum + goal.allocatedAmount, 0);
 
 const assetClassColors = [
-  "#2ecc71",
-  "#e74c3c",
-  "#f1c40f",
-  "#3498db",
-  "#9b59b6",
-  "#34495e",
+  "#4361ee", // Indigo Blue
+  "#2ec4b6", // Mint Teal
+  "#ff9f1c", // Tangerine Orange
+  "#e63946", // Coral Red
+  "#7209b7", // Royal Purple
+  "#ffd166", // Lemon Yellow
 ];
 const assetGoalColors = [
-  "#8e44ad",
-  "#16a085",
-  "#d35400",
-  "#c0392b",
-  "#27ae60",
-  "#2980b9",
+  "#7209b7", // Royal Purple
+  "#2ec4b6", // Mint Teal
+  "#ff9f1c", // Tangerine Orange
+  "#e63946", // Coral Red
+  "#ffd166", // Lemon Yellow
+  "#4361ee", // Indigo Blue
 ];
 const savingsColors = [
-  "#f39c12",
-  "#1abc9c",
-  "#e67e22",
-  "#7f8c8d",
-  "#bdc3c7",
-  "#2c3e50",
+  "#ff9f1c", // Tangerine Orange
+  "#00b4d8", // Sky Cyan
+  "#ff006e", // Hot Pink
+  "#2ec4b6", // Mint Teal
+  "#7209b7", // Royal Purple
+  "#ffd166", // Lemon Yellow
 ];
+const incomeColors = [
+  "#2ec4b6", // Mint Teal
+  "#4361ee", // Indigo Blue
+  "#7209b7", // Royal Purple
+  "#ff9f1c", // Tangerine Orange
+  "#ffd166", // Lemon Yellow
+  "#ff006e", // Hot Pink
+  "#e63946", // Coral Red
+  "#00b4d8", // Sky Cyan
+];
+
+const assignUniqueColors = <T>(
+  items: T[],
+  labelExtractor: (item: T) => string,
+  palette: string[]
+) => {
+  const usedColors = new Set<string>();
+  return items.map((item, index) => {
+    const label = labelExtractor(item);
+    const details = getKeywordDetails(label);
+    let color = (details && details.icon !== "🏷️") ? details.hex : "";
+    if (!color || usedColors.has(color)) {
+      color = palette[index % palette.length];
+      const unique = palette.find((c) => !usedColors.has(c));
+      if (unique) color = unique;
+    }
+    usedColors.add(color);
+    return {
+      item,
+      color,
+    };
+  });
+};
 
 export function useDashboardData() {
   const data = useLiveQuery(async () => {
@@ -148,11 +189,11 @@ export function useDashboardData() {
     const totalIncome = incomes.reduce((sum, item) => sum + Number(item.monthly), 0);
     const purposeMap = purposes.reduce(
       (
-        map: Record<number, { name: string; total: number }>,
+        map: Record<number, { name: string; type: string; total: number }>,
         purpose: AssetPurpose,
       ) => {
         if (purpose.id) {
-          map[purpose.id] = { name: purpose.name, total: 0 };
+          map[purpose.id] = { name: purpose.name, type: purpose.type || "", total: 0 };
         }
         return map;
       },
@@ -167,38 +208,52 @@ export function useDashboardData() {
 
     const expensesByPurpose = Object.values(purposeMap)
       .filter(
-        (purpose): purpose is { name: string; total: number } =>
+        (purpose): purpose is { name: string; type: string; total: number } =>
           purpose.total > 0,
       )
       .map((purpose) => ({
         id: purpose.name,
+        type: purpose.type,
         value: purpose.total,
         label: purpose.name,
         total: totalIncome,
       }));
 
-    const withPercentage = ["Need", "Savings", "Want"]
-      .map((key) => {
-        const item = expensesByPurpose.find((i) => i.id === key);
+    const withPercentage = [FINANCIAL_CATEGORIES.NEED, FINANCIAL_CATEGORIES.SAVINGS, FINANCIAL_CATEGORIES.WANT]
+      .map((typeKey) => {
+        const item = expensesByPurpose.find((i) => i.type?.toLowerCase() === typeKey);
         if (!item) return null;
         const percentage = (item.value / item.total) * 100;
         let isValid = true;
         let rule = "";
 
-        if (key === "Need") {
-          rule = "≤ 50%";
-          if (percentage > 50) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.NEED) {
+          rule = `≤ ${BUDGET_RULES.NEED_LIMIT}%`;
+          if (percentage > BUDGET_RULES.NEED_LIMIT) isValid = false;
         }
-        if (key === "Want") {
-          rule = "≤ 20%";
-          if (percentage > 20) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.WANT) {
+          rule = `≤ ${BUDGET_RULES.WANT_LIMIT}%`;
+          if (percentage > BUDGET_RULES.WANT_LIMIT) isValid = false;
         }
-        if (key === "Savings") {
-          rule = "≥ 30%";
-          if (percentage < 30) isValid = false;
+        if (typeKey === FINANCIAL_CATEGORIES.SAVINGS) {
+          rule = `≥ ${BUDGET_RULES.SAVINGS_FLOOR}%`;
+          if (percentage < BUDGET_RULES.SAVINGS_FLOOR) isValid = false;
         }
 
-        return { ...item, percentage, isValid, rule };
+        const keyName = capitalize(typeKey);
+        const lookupKey = (typeKey === FINANCIAL_CATEGORIES.SAVINGS ? "saving" : typeKey) as keyof typeof t.keywords;
+        const localizedLabel = t.keywords[lookupKey] || item.label;
+
+        return {
+          id: keyName, // Maintain backward compatibility for pages that index on "Need"/"Savings"/"Want"
+          type: typeKey,
+          value: item.value,
+          label: localizedLabel,
+          total: item.total,
+          percentage,
+          isValid,
+          rule,
+        };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -228,14 +283,16 @@ export function useDashboardData() {
       }
     });
 
-    const assetClassAllocation = assetClasses
-      .filter((ac) => classAllocationMap[ac.id] > 0)
-      .map((ac) => ({
-        id: ac.id,
-        label: ac.name,
-        value: classAllocationMap[ac.id],
-        color: assetClassColors[assetClasses.indexOf(ac) % assetClassColors.length]
-      }));
+    const assetClassAllocation = assignUniqueColors(
+      assetClasses.filter((ac) => classAllocationMap[ac.id] > 0),
+      (ac) => ac.name,
+      assetClassColors
+    ).map(({ item: ac, color }) => ({
+      id: ac.id,
+      label: ac.name,
+      value: classAllocationMap[ac.id],
+      color
+    }));
 
     // 6. Calculate asset allocation by goal
     const goalAllocationMap: Record<number, number> = {};
@@ -246,13 +303,16 @@ export function useDashboardData() {
       }
     });
 
-    const assetAllocationByGoal = goals
-      .filter((goal) => goalAllocationMap[goal.id] > 0)
-      .map((goal) => ({
-        id: goal.id,
-        label: goal.name,
-        value: goalAllocationMap[goal.id],
-      }));
+    const assetAllocationByGoal = assignUniqueColors(
+      goals.filter((goal) => goalAllocationMap[goal.id] > 0),
+      (goal) => goal.name,
+      assetGoalColors
+    ).map(({ item: goal, color }) => ({
+      id: goal.id,
+      label: goal.name,
+      value: goalAllocationMap[goal.id],
+      color
+    }));
 
     // 7. Calculate asset allocation by bucket
     const bucketAllocationMap: Record<number, number> = {};
@@ -263,17 +323,20 @@ export function useDashboardData() {
       }
     });
 
-    const assetAllocationByBucket = buckets
-      .filter((bucket) => bucketAllocationMap[bucket.id] > 0)
-      .map((bucket) => ({
-        id: bucket.id,
-        label: bucket.name,
-        value: bucketAllocationMap[bucket.id],
-      }));
+    const assetAllocationByBucket = assignUniqueColors(
+      buckets.filter((bucket) => bucketAllocationMap[bucket.id] > 0),
+      (bucket) => bucket.name,
+      assetClassColors
+    ).map(({ item: bucket, color }) => ({
+      id: bucket.id,
+      label: bucket.name,
+      value: bucketAllocationMap[bucket.id],
+      color
+    }));
 
     // 8. Calculate savings cash flow
     const savingsPurposeIds = purposes
-      .filter((p) => p.type === "savings")
+      .filter((p) => p.type === FINANCIAL_CATEGORIES.SAVINGS)
       .map((p) => p.id);
     const goalMap: Record<number, { name: string; total: number }> = {};
     goals.forEach((goal) => {
@@ -294,30 +357,35 @@ export function useDashboardData() {
       groupedSavings[label] = (groupedSavings[label] || 0) + flow.monthly;
     });
 
-    const savingsCashFlow = Object.entries(groupedSavings).map(([label, total]) => ({
+    const savingsCashFlow = assignUniqueColors(
+      Object.entries(groupedSavings),
+      ([label]) => label,
+      savingsColors
+    ).map(({ item: [label, total], color }) => ({
       id: label,
       label,
       value: total,
+      color
     }));
 
     // 9. Card data
     const cardData = [
       {
-        title: "Total Assets",
+        title: t.dashboard.totalAssets,
         value: totalAssets,
         bg: "primary",
         text: "white",
         url: "/assets-holdings",
       },
       {
-        title: "Total Liabilities",
+        title: t.dashboard.totalLiabilities,
         value: totalLiabilities,
         bg: "danger",
         text: "white",
         url: "/liabilities",
       },
       {
-        title: "Net Worth",
+        title: t.dashboard.netWorth,
         value: netWorth,
         bg: "success",
         text: "white",
@@ -385,23 +453,28 @@ export function useDashboardData() {
 
     const projectedAssetGrowth = Object.values(projectedMap)
       .filter((item) => item.currentValue > 0 || item.value > 0)
-      .map((item) => ({
-        ...item,
-        color: assetClassColors[assetClasses.findIndex((ac) => ac.id === item.id) % assetClassColors.length]
-      }))
+      .map((item) => {
+        const matchingClass = assetClassAllocation.find((ac) => ac.id === item.id);
+        const color = matchingClass?.color || assetClassColors[assetClasses.findIndex((ac) => ac.id === item.id) % assetClassColors.length];
+        return {
+          ...item,
+          color
+        };
+      })
       .sort((a, b) => b.value - a.value);
 
     // 12. Income allocation by source
-    const incomeAllocation = incomes
-      .map((inc) => {
-        const holder = holders.find((h) => h.id === inc.holders_id);
-        const label = inc.item || holder?.name || "Other Income";
-        return {
-          id: String(inc.id),
-          label,
-          value: Number(inc.monthly),
-        };
-      })
+    const incomeAllocation = assignUniqueColors(
+      incomes,
+      (inc) => inc.item || holders.find((h) => h.id === inc.holders_id)?.name || "Other Income",
+      incomeColors
+    )
+      .map(({ item: inc, color }) => ({
+        id: String(inc.id),
+        label: inc.item || holders.find((h) => h.id === inc.holders_id)?.name || "Other Income",
+        value: Number(inc.monthly),
+        color
+      }))
       .filter((item) => item.value > 0);
 
     // 13. Financial Freedom Metrics
@@ -409,8 +482,8 @@ export function useDashboardData() {
       income: totalIncome,
       assets: totalAssets,
       liabilities: totalLiabilities,
-      expenses: expensesByPurpose.find((e) => e.id === "Need")?.value || 0,
-      wants: expensesByPurpose.find((e) => e.id === "Want")?.value || 0,
+      expenses: expensesByPurpose.find((e) => e.type === FINANCIAL_CATEGORIES.NEED || e.id === capitalize(FINANCIAL_CATEGORIES.NEED))?.value || 0,
+      wants: expensesByPurpose.find((e) => e.type === FINANCIAL_CATEGORIES.WANT || e.id === capitalize(FINANCIAL_CATEGORIES.WANT))?.value || 0,
       emergencyFund: getGoalAllocationByName(goalProgress, /emergency/i),
       retirementAssets: getGoalAllocationByName(goalProgress, /fire/i),
       emi: totalEmi,
@@ -466,5 +539,6 @@ export function useDashboardData() {
     assetClassColors,
     assetGoalColors,
     savingsColors,
+    incomeColors,
   };
 }

@@ -6,6 +6,7 @@ import { Form } from "react-bootstrap";
 import BasePage from "@/components/layout/BasePage";
 import FormModal from "@/components/common/FormModal";
 import FormSelect from "@/components/common/FormSelect";
+import { t } from "@/utils/localization";
 
 interface AccountFormProps {
   show: boolean;
@@ -112,7 +113,7 @@ export default function AccountsPage() {
 
   return (
     <BasePage<Account>
-      title="Accounts"
+      title={t.common.accounts || "Accounts"}
       data={accounts}
       columns={[
         { field: "bank", headerName: "Bank" },

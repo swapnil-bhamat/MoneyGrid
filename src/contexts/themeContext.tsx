@@ -5,6 +5,7 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
+import { STORAGE_KEYS } from "@/utils/constants";
 
 export type BootswatchTheme =
   | "default"
@@ -50,7 +51,7 @@ export const useTheme = () => {
   return context;
 };
 
-const BOOTSWATCH_STORAGE_KEY = "bootswatch_theme";
+const BOOTSWATCH_STORAGE_KEY = STORAGE_KEYS.BOOTSWATCH_THEME;
 
 const DARK_THEMES = new Set<BootswatchTheme>([
   "cyborg",

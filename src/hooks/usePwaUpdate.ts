@@ -1,11 +1,45 @@
 import { useState, useEffect, useCallback } from "react";
-import { APP_VERSION } from "@/utils/version";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/infrastructure/db/db";
+import { CONFIG_KEYS } from "@/services/configService";
+import packageJson from "../../package.json";
+
+const APP_VERSION = packageJson.version;
+
+const isNewerVersion = (v1: string, v2: string): boolean => {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+    if (p1 > p2) return true;
+    if (p1 < p2) return false;
+  }
+  return false;
+};
 
 export function usePwaUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [checkingForUpdate, setCheckingForUpdate] = useState(false);
   const [noUpdateFound, setNoUpdateFound] = useState(false);
+
+  // Live Query to reactively watch IndexedDB APP_VERSION
+  const dbVersion = useLiveQuery(async () => {
+    try {
+      const config = await db.configs.filter((c) => c.key === CONFIG_KEYS.APP_VERSION).first();
+      return (config?.value as string) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Watch dbVersion changes reactively
+  useEffect(() => {
+    if (dbVersion && isNewerVersion(dbVersion, APP_VERSION)) {
+      setUpdateAvailable(true);
+    }
+  }, [dbVersion]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -71,20 +105,29 @@ export function usePwaUpdate() {
 
   // Exposes manual update checking
   const checkForUpdates = useCallback(async () => {
-    if (!registration) {
-      // In development or if SW isn't ready yet, simulate update check and return up-to-date
-      setCheckingForUpdate(true);
-      setNoUpdateFound(false);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setCheckingForUpdate(false);
-      setNoUpdateFound(true);
-      setTimeout(() => setNoUpdateFound(false), 3000);
-      return;
-    }
-
     setCheckingForUpdate(true);
     setNoUpdateFound(false);
+
     try {
+      // Check database version first
+      const config = await db.configs.filter((c) => c.key === CONFIG_KEYS.APP_VERSION).first();
+      const dbVer = (config?.value as string) || null;
+
+      if (dbVer && isNewerVersion(dbVer, APP_VERSION)) {
+        setUpdateAvailable(true);
+        setCheckingForUpdate(false);
+        return;
+      }
+
+      // If no database version difference, fallback to standard service worker check
+      if (!registration) {
+        // In development or if SW isn't ready yet, simulate update check and return up-to-date
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setNoUpdateFound(true);
+        setTimeout(() => setNoUpdateFound(false), 3000);
+        return;
+      }
+
       const hadWaiting = !!registration.waiting;
       const reg = await registration.update();
       
