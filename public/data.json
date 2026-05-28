@@ -857,6 +857,11 @@
     }
   ],
   "upcomingExpenses": [],
-  "insuranceTypes": [],
+  "insuranceTypes": [
+    { "id": 1, "name": "Health" },
+    { "id": 2, "name": "Life" },
+    { "id": 3, "name": "Bike" },
+    { "id": 4, "name": "Car" }
+  ],
   "insurances": []
 }

@@ -10,8 +10,9 @@ import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { BsCheckCircleFill, BsCircle } from "react-icons/bs";
-import { getKeywordDetails } from "@/utils/keywordRegistry";
 import { t } from "@/utils/localization";
+import { getDynamicBgClass } from "@/utils/colorUtils";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
 
@@ -178,7 +179,6 @@ export default function UpcomingExpensesPage() {
                   const details = getKeywordDetails(p.name);
                   return (
                     <Badge key={p.id} bg={details.color} className="p-2 fw-normal">
-                      <span className="me-1">{details.icon}</span>
                       <span className="opacity-75 me-1">{p.name}:</span>
                       {toLocalCurrency(p.amount)}
                     </Badge>
@@ -295,7 +295,10 @@ export default function UpcomingExpensesPage() {
       onEdit={handleEdit}
       onDelete={handleDelete}
       FormComponent={UpcomingExpenseForm}
-      getRowClassName={(item) => item.isCompleted ? "opacity-75 bg-body-tertiary" : ""}
+      getRowClassName={(item) => {
+        if (item.isCompleted) return "opacity-75 bg-body-tertiary";
+        return getDynamicBgClass(item.assetPurpose_id);
+      }}
       summary={summary}
     />
   );

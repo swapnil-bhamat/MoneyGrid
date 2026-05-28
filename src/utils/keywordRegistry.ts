@@ -3,272 +3,78 @@ import { t } from "@/utils/localization";
 export interface KeywordDetail {
   keyword: string;
   icon: string;        // Unicode emoji/icon character
-  color: string;       // Bootstrap color class suffix: 'danger', 'warning', 'success', 'info', etc.
+  color: string;       // Bootstrap color class suffix: 'danger', 'warning', 'success', etc.
   hex: string;         // Constant hex value for charts/canvas
 }
-export const KEYWORD_MAP: Record<string, KeywordDetail> = {
-  // Purpose / Planning
-  need: {
-    keyword: "Need",
-    icon: "🎯",
-    color: "danger",
-    hex: "#e74c3c",
-  },
-  needs: {
-    keyword: "Need",
-    icon: "🎯",
-    color: "danger",
-    hex: "#e74c3c",
-  },
 
-  want: {
-    keyword: "Want",
-    icon: "🌟",
-    color: "warning",
-    hex: "#f1c40f",
-  },
-  wants: {
-    keyword: "Want",
-    icon: "🌟",
-    color: "warning",
-    hex: "#f1c40f",
-  },
+interface BaseKeyword {
+  key: string;              // Standard localization key under t.keywords
+  defaultKeyword: string;   // Default fallback English keyword name
+  icon: string;
+  color: string;
+  hex: string;
+  aliases?: string[];       // Any other words that map to this keyword
+}
 
-  saving: {
-    keyword: "Saving",
-    icon: "💰",
-    color: "success",
-    hex: "#2ecc71",
-  },
-  savings: {
-    keyword: "Saving",
-    icon: "💰",
-    color: "success",
-    hex: "#2ecc71",
-  },
+const BASE_KEYWORDS: BaseKeyword[] = [
+  { key: "need", defaultKeyword: "Need", icon: "🎯", color: "danger", hex: "#e74c3c", aliases: ["needs"] },
+  { key: "want", defaultKeyword: "Want", icon: "🌟", color: "warning", hex: "#f1c40f", aliases: ["wants"] },
+  { key: "saving", defaultKeyword: "Saving", icon: "💰", color: "success", hex: "#2ecc71", aliases: ["savings"] },
+  { key: "emergency", defaultKeyword: "Emergency Fund", icon: "🛟", color: "danger", hex: "#c0392b" },
+  { key: "retirement", defaultKeyword: "Retirement", icon: "🏖️", color: "primary", hex: "#8e44ad" },
+  { key: "education", defaultKeyword: "Education", icon: "🎓", color: "info", hex: "#3498db" },
+  { key: "marriage", defaultKeyword: "Marriage", icon: "💍", color: "pink", hex: "#e84393" },
+  { key: "equity", defaultKeyword: "Equity", icon: "📈", color: "info", hex: "#3498db" },
+  { key: "stock", defaultKeyword: "Stock", icon: "📊", color: "primary", hex: "#2980b9", aliases: ["stocks"] },
+  { key: "debt", defaultKeyword: "Debt", icon: "📉", color: "secondary", hex: "#95a5a6" },
+  { key: "liquid", defaultKeyword: "Liquid", icon: "💧", color: "info", hex: "#1abc9c" },
+  { key: "gold", defaultKeyword: "Gold", icon: "🪙", color: "warning", hex: "#f39c12" },
+  { key: "bitcoin", defaultKeyword: "Bitcoin", icon: "₿", color: "dark", hex: "#f7931a" },
+  { key: "commodity", defaultKeyword: "Commodity", icon: "📦", color: "secondary", hex: "#7f8c8d" },
+  { key: "reit", defaultKeyword: "REIT", icon: "🏢", color: "dark", hex: "#34495e" },
+  { key: "realEstate", defaultKeyword: "Real Estate", icon: "🏠", color: "dark", hex: "#2c3e50", aliases: ["real estate", "property"] },
+  { key: "sip", defaultKeyword: "SIP", icon: "🔁", color: "primary", hex: "#16a085" },
+  { key: "mutualFund", defaultKeyword: "Mutual Fund", icon: "💼", color: "primary", hex: "#2980b9", aliases: ["mutual", "mutual fund"] },
+  { key: "fd", defaultKeyword: "Fixed Deposit", icon: "🏦", color: "secondary", hex: "#7f8c8d" },
+  { key: "epf", defaultKeyword: "EPF", icon: "🧾", color: "success", hex: "#27ae60" },
+  { key: "ssy", defaultKeyword: "SSY", icon: "👧", color: "warning", hex: "#f39c12" },
+  { key: "income", defaultKeyword: "Income", icon: "💵", color: "success", hex: "#2ecc71" },
+  { key: "salary", defaultKeyword: "Salary", icon: "🧑‍💼", color: "success", hex: "#27ae60" },
+  { key: "expense", defaultKeyword: "Expense", icon: "💳", color: "danger", hex: "#e74c3c" },
+  { key: "emi", defaultKeyword: "EMI", icon: "📅", color: "danger", hex: "#c0392b" },
+  { key: "insurance", defaultKeyword: "Insurance", icon: "🛡️", color: "info", hex: "#2980b9" },
+  { key: "donation", defaultKeyword: "Donation", icon: "🤝", color: "secondary", hex: "#8e44ad" },
+  { key: "loan", defaultKeyword: "Loan", icon: "🏦", color: "danger", hex: "#d35400" },
+  { key: "liability", defaultKeyword: "Liability", icon: "⚠️", color: "danger", hex: "#e74c3c" },
+  { key: "shortTerm", defaultKeyword: "Short Term", icon: "⏳", color: "warning", hex: "#f39c12", aliases: ["short"] },
+  { key: "longTerm", defaultKeyword: "Long Term", icon: "🕰️", color: "primary", hex: "#8e44ad", aliases: ["long"] },
+  { key: "health", defaultKeyword: "Health", icon: "🏥", color: "success", hex: "#2ecc71", aliases: ["health insurance", "medical", "mediclaim"] },
+  { key: "life", defaultKeyword: "Life", icon: "🛡️", color: "primary", hex: "#3498db", aliases: ["life insurance", "term", "term insurance"] },
+  { key: "bike", defaultKeyword: "Bike", icon: "🏍️", color: "warning", hex: "#e67e22", aliases: ["bike insurance", "two wheeler", "motorcycle"] },
+  { key: "car", defaultKeyword: "Car", icon: "🚗", color: "info", hex: "#2980b9", aliases: ["car insurance", "four wheeler"] },
+];
 
-  emergency: {
-    keyword: "Emergency Fund",
-    icon: "🛟",
-    color: "danger",
-    hex: "#c0392b",
-  },
+// Dynamically construct KEYWORD_MAP for 100% backward compatibility
+export const KEYWORD_MAP: Record<string, KeywordDetail> = {};
 
-  retirement: {
-    keyword: "Retirement",
-    icon: "🏖️",
-    color: "primary",
-    hex: "#8e44ad",
-  },
-
-  education: {
-    keyword: "Education",
-    icon: "🎓",
-    color: "info",
-    hex: "#3498db",
-  },
-
-  marriage: {
-    keyword: "Marriage",
-    icon: "💍",
-    color: "pink",
-    hex: "#e84393",
-  },
-
-  // Asset Classes
-  equity: {
-    keyword: "Equity",
-    icon: "📈",
-    color: "info",
-    hex: "#3498db",
-  },
-
-  stock: {
-    keyword: "Stock",
-    icon: "📊",
-    color: "primary",
-    hex: "#2980b9",
-  },
-
-  stocks: {
-    keyword: "Stock",
-    icon: "📊",
-    color: "primary",
-    hex: "#2980b9",
-  },
-
-  debt: {
-    keyword: "Debt",
-    icon: "📉",
-    color: "secondary",
-    hex: "#95a5a6",
-  },
-
-  liquid: {
-    keyword: "Liquid",
-    icon: "💧",
-    color: "info",
-    hex: "#1abc9c",
-  },
-
-  gold: {
-    keyword: "Gold",
-    icon: "🪙",
-    color: "warning",
-    hex: "#f39c12",
-  },
-
-  bitcoin: {
-    keyword: "Bitcoin",
-    icon: "₿",
-    color: "dark",
-    hex: "#f7931a",
-  },
-
-  commodity: {
-    keyword: "Commodity",
-    icon: "📦",
-    color: "secondary",
-    hex: "#7f8c8d",
-  },
-
-  reit: {
-    keyword: "REIT",
-    icon: "🏢",
-    color: "dark",
-    hex: "#34495e",
-  },
-
-  "real estate": {
-    keyword: "Real Estate",
-    icon: "🏠",
-    color: "dark",
-    hex: "#2c3e50",
-  },
-
-  property: {
-    keyword: "Real Estate",
-    icon: "🏠",
-    color: "dark",
-    hex: "#2c3e50",
-  },
-
-  // Investment Types
-  sip: {
-    keyword: "SIP",
-    icon: "🔁",
-    color: "primary",
-    hex: "#16a085",
-  },
-
-  mutual: {
-    keyword: "Mutual Fund",
-    icon: "💼",
-    color: "primary",
-    hex: "#2980b9",
-  },
-
-  "mutual fund": {
-    keyword: "Mutual Fund",
-    icon: "💼",
-    color: "primary",
-    hex: "#2980b9",
-  },
-
-  fd: {
-    keyword: "Fixed Deposit",
-    icon: "🏦",
-    color: "secondary",
-    hex: "#7f8c8d",
-  },
-
-  epf: {
-    keyword: "EPF",
-    icon: "🧾",
-    color: "success",
-    hex: "#27ae60",
-  },
-
-  ssy: {
-    keyword: "SSY",
-    icon: "👧",
-    color: "warning",
-    hex: "#f39c12",
-  },
-
-  // Cash Flow
-  income: {
-    keyword: "Income",
-    icon: "💵",
-    color: "success",
-    hex: "#2ecc71",
-  },
-
-  salary: {
-    keyword: "Salary",
-    icon: "🧑‍💼",
-    color: "success",
-    hex: "#27ae60",
-  },
-
-  expense: {
-    keyword: "Expense",
-    icon: "💳",
-    color: "danger",
-    hex: "#e74c3c",
-  },
-
-  emi: {
-    keyword: "EMI",
-    icon: "📅",
-    color: "danger",
-    hex: "#c0392b",
-  },
-
-  insurance: {
-    keyword: "Insurance",
-    icon: "🛡️",
-    color: "info",
-    hex: "#2980b9",
-  },
-
-  donation: {
-    keyword: "Donation",
-    icon: "🤝",
-    color: "secondary",
-    hex: "#8e44ad",
-  },
-
-  // Loans / Liabilities
-  loan: {
-    keyword: "Loan",
-    icon: "🏦",
-    color: "danger",
-    hex: "#d35400",
-  },
-
-  liability: {
-    keyword: "Liability",
-    icon: "⚠️",
-    color: "danger",
-    hex: "#e74c3c",
-  },
-
-  // Time Buckets
-  short: {
-    keyword: "Short Term",
-    icon: "⏳",
-    color: "warning",
-    hex: "#f39c12",
-  },
-
-  long: {
-    keyword: "Long Term",
-    icon: "🕰️",
-    color: "primary",
-    hex: "#8e44ad",
-  },
-};
+BASE_KEYWORDS.forEach((item) => {
+  const detail: KeywordDetail = {
+    keyword: item.defaultKeyword,
+    icon: item.icon,
+    color: item.color,
+    hex: item.hex,
+  };
+  
+  // Register under base key
+  KEYWORD_MAP[item.key.toLowerCase()] = detail;
+  
+  // Register under aliases
+  if (item.aliases) {
+    item.aliases.forEach((alias) => {
+      KEYWORD_MAP[alias.toLowerCase()] = detail;
+    });
+  }
+});
 
 /**
  * Normalizes and returns styling details for a given category, budget category, or financial keyword.
@@ -276,69 +82,28 @@ export const KEYWORD_MAP: Record<string, KeywordDetail> = {
 export const getKeywordDetails = (name: string | undefined | null): KeywordDetail => {
   if (!name) return { keyword: "", icon: "❓", color: "secondary", hex: "#7f8c8d" };
   const normalized = name.toLowerCase().trim();
-  
-  // Map normalized category/keyword names to localized keys in t.keywords
-  const translationKeyMap: Record<string, string> = {
-    need: "need",
-    needs: "need",
-    want: "want",
-    wants: "want",
-    saving: "saving",
-    savings: "saving",
-    emergency: "emergency",
-    retirement: "retirement",
-    education: "education",
-    marriage: "marriage",
-    equity: "equity",
-    stock: "stock",
-    stocks: "stock",
-    debt: "debt",
-    liquid: "liquid",
-    gold: "gold",
-    bitcoin: "bitcoin",
-    commodity: "commodity",
-    reit: "reit",
-    "real estate": "realEstate",
-    property: "realEstate",
-    sip: "sip",
-    mutual: "mutualFund",
-    "mutual fund": "mutualFund",
-    fd: "fd",
-    epf: "epf",
-    ssy: "ssy",
-    income: "income",
-    salary: "salary",
-    expense: "expense",
-    emi: "emi",
-    insurance: "insurance",
-    donation: "donation",
-    loan: "loan",
-    liability: "liability",
-    short: "shortTerm",
-    long: "longTerm",
-  };
 
-  // Find exact details from static map
-  let detail: KeywordDetail | undefined;
-  if (KEYWORD_MAP[normalized]) {
-    detail = { ...KEYWORD_MAP[normalized] };
-  } else {
-    for (const [key, value] of Object.entries(KEYWORD_MAP)) {
-      if (normalized.includes(key) || key.includes(normalized)) {
-        detail = { ...value };
-        break;
-      }
-    }
+  // Find matching base keyword or alias
+  const match = BASE_KEYWORDS.find((item) => {
+    if (item.key.toLowerCase() === normalized) return true;
+    if (item.aliases?.some((alias) => alias.toLowerCase() === normalized)) return true;
+    return false;
+  }) || BASE_KEYWORDS.find((item) => {
+    if (normalized.includes(item.key.toLowerCase())) return true;
+    if (item.aliases?.some((alias) => normalized.includes(alias.toLowerCase()))) return true;
+    return false;
+  });
+
+  if (match) {
+    // Localize keyword name if translated key matches
+    const localizedKeyword = (t.keywords as any)[match.key] || match.defaultKeyword;
+    return {
+      keyword: localizedKeyword,
+      icon: match.icon,
+      color: match.color,
+      hex: match.hex,
+    };
   }
 
-  // Localize keyword name if translated key matches
-  if (detail) {
-    const key = translationKeyMap[normalized] || translationKeyMap[detail.keyword.toLowerCase()];
-    if (key && (t.keywords as any)[key]) {
-      detail.keyword = (t.keywords as any)[key];
-    }
-    return detail;
-  }
-  
   return { keyword: name, icon: "🏷️", color: "secondary", hex: "#95a5a6" };
 };

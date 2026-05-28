@@ -55,6 +55,29 @@ const incomeColors = [
   "#00b4d8", // Sky Cyan
 ];
 
+const assignUniqueColors = <T>(
+  items: T[],
+  labelExtractor: (item: T) => string,
+  palette: string[]
+) => {
+  const usedColors = new Set<string>();
+  return items.map((item, index) => {
+    const label = labelExtractor(item);
+    const details = getKeywordDetails(label);
+    let color = (details && details.icon !== "🏷️") ? details.hex : "";
+    if (!color || usedColors.has(color)) {
+      color = palette[index % palette.length];
+      const unique = palette.find((c) => !usedColors.has(c));
+      if (unique) color = unique;
+    }
+    usedColors.add(color);
+    return {
+      item,
+      color,
+    };
+  });
+};
+
 export function useDashboardData() {
   const data = useLiveQuery(async () => {
     // Gathers all data atomically in a single Promise.all
@@ -260,26 +283,16 @@ export function useDashboardData() {
       }
     });
 
-    const usedClassColors = new Set<string>();
-    const assetClassAllocation = assetClasses
-      .filter((ac) => classAllocationMap[ac.id] > 0)
-      .map((ac, index) => {
-        const details = getKeywordDetails(ac.name);
-        let color = (details && details.icon !== "🏷️") ? details.hex : "";
-        if (!color || usedClassColors.has(color)) {
-          color = assetClassColors[index % assetClassColors.length];
-          // Try to get a unique color from the palette if available
-          const unique = assetClassColors.find(c => !usedClassColors.has(c));
-          if (unique) color = unique;
-        }
-        usedClassColors.add(color);
-        return {
-          id: ac.id,
-          label: ac.name,
-          value: classAllocationMap[ac.id],
-          color
-        };
-      });
+    const assetClassAllocation = assignUniqueColors(
+      assetClasses.filter((ac) => classAllocationMap[ac.id] > 0),
+      (ac) => ac.name,
+      assetClassColors
+    ).map(({ item: ac, color }) => ({
+      id: ac.id,
+      label: ac.name,
+      value: classAllocationMap[ac.id],
+      color
+    }));
 
     // 6. Calculate asset allocation by goal
     const goalAllocationMap: Record<number, number> = {};
@@ -290,26 +303,16 @@ export function useDashboardData() {
       }
     });
 
-    const usedGoalColors = new Set<string>();
-    const assetAllocationByGoal = goals
-      .filter((goal) => goalAllocationMap[goal.id] > 0)
-      .map((goal, index) => {
-        const details = getKeywordDetails(goal.name);
-        let color = (details && details.icon !== "🏷️") ? details.hex : "";
-        if (!color || usedGoalColors.has(color)) {
-          color = assetGoalColors[index % assetGoalColors.length];
-          // Try to get a unique color from the palette if available
-          const unique = assetGoalColors.find(c => !usedGoalColors.has(c));
-          if (unique) color = unique;
-        }
-        usedGoalColors.add(color);
-        return {
-          id: goal.id,
-          label: goal.name,
-          value: goalAllocationMap[goal.id],
-          color
-        };
-      });
+    const assetAllocationByGoal = assignUniqueColors(
+      goals.filter((goal) => goalAllocationMap[goal.id] > 0),
+      (goal) => goal.name,
+      assetGoalColors
+    ).map(({ item: goal, color }) => ({
+      id: goal.id,
+      label: goal.name,
+      value: goalAllocationMap[goal.id],
+      color
+    }));
 
     // 7. Calculate asset allocation by bucket
     const bucketAllocationMap: Record<number, number> = {};
@@ -320,26 +323,16 @@ export function useDashboardData() {
       }
     });
 
-    const usedBucketColors = new Set<string>();
-    const assetAllocationByBucket = buckets
-      .filter((bucket) => bucketAllocationMap[bucket.id] > 0)
-      .map((bucket, index) => {
-        const details = getKeywordDetails(bucket.name);
-        let color = (details && details.icon !== "🏷️") ? details.hex : "";
-        if (!color || usedBucketColors.has(color)) {
-          color = assetClassColors[index % assetClassColors.length];
-          // Try to get a unique color from the palette if available
-          const unique = assetClassColors.find(c => !usedBucketColors.has(c));
-          if (unique) color = unique;
-        }
-        usedBucketColors.add(color);
-        return {
-          id: bucket.id,
-          label: bucket.name,
-          value: bucketAllocationMap[bucket.id],
-          color
-        };
-      });
+    const assetAllocationByBucket = assignUniqueColors(
+      buckets.filter((bucket) => bucketAllocationMap[bucket.id] > 0),
+      (bucket) => bucket.name,
+      assetClassColors
+    ).map(({ item: bucket, color }) => ({
+      id: bucket.id,
+      label: bucket.name,
+      value: bucketAllocationMap[bucket.id],
+      color
+    }));
 
     // 8. Calculate savings cash flow
     const savingsPurposeIds = purposes
@@ -364,24 +357,16 @@ export function useDashboardData() {
       groupedSavings[label] = (groupedSavings[label] || 0) + flow.monthly;
     });
 
-    const usedSavingsColors = new Set<string>();
-    const savingsCashFlow = Object.entries(groupedSavings).map(([label, total], index) => {
-      const details = getKeywordDetails(label);
-      let color = (details && details.icon !== "🏷️") ? details.hex : "";
-      if (!color || usedSavingsColors.has(color)) {
-        color = savingsColors[index % savingsColors.length];
-        // Try to get a unique color from the palette if available
-        const unique = savingsColors.find(c => !usedSavingsColors.has(c));
-        if (unique) color = unique;
-      }
-      usedSavingsColors.add(color);
-      return {
-        id: label,
-        label,
-        value: total,
-        color
-      };
-    });
+    const savingsCashFlow = assignUniqueColors(
+      Object.entries(groupedSavings),
+      ([label]) => label,
+      savingsColors
+    ).map(({ item: [label, total], color }) => ({
+      id: label,
+      label,
+      value: total,
+      color
+    }));
 
     // 9. Card data
     const cardData = [
@@ -479,27 +464,17 @@ export function useDashboardData() {
       .sort((a, b) => b.value - a.value);
 
     // 12. Income allocation by source
-    const usedIncomeColors = new Set<string>();
-    const incomeAllocation = incomes
-      .map((inc, index) => {
-        const holder = holders.find((h) => h.id === inc.holders_id);
-        const label = inc.item || holder?.name || "Other Income";
-        const details = getKeywordDetails(label);
-        let color = (details && details.icon !== "🏷️") ? details.hex : "";
-        if (!color || usedIncomeColors.has(color)) {
-          color = incomeColors[index % incomeColors.length];
-          // Try to get a unique color from the palette if available
-          const unique = incomeColors.find(c => !usedIncomeColors.has(c));
-          if (unique) color = unique;
-        }
-        usedIncomeColors.add(color);
-        return {
-          id: String(inc.id),
-          label,
-          value: Number(inc.monthly),
-          color
-        };
-      })
+    const incomeAllocation = assignUniqueColors(
+      incomes,
+      (inc) => inc.item || holders.find((h) => h.id === inc.holders_id)?.name || "Other Income",
+      incomeColors
+    )
+      .map(({ item: inc, color }) => ({
+        id: String(inc.id),
+        label: inc.item || holders.find((h) => h.id === inc.holders_id)?.name || "Other Income",
+        value: Number(inc.monthly),
+        color
+      }))
       .filter((item) => item.value > 0);
 
     // 13. Financial Freedom Metrics

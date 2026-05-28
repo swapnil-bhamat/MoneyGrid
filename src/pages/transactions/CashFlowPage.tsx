@@ -4,12 +4,13 @@ import { db } from "@/infrastructure/db/db";
 import type { CashFlow } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
 import FormModal from "@/components/common/FormModal";
-import { Form, Card, Row, Col, Button, Modal } from "react-bootstrap";
+import { Form, Card, Row, Col, Button, Modal, Badge } from "react-bootstrap";
 import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { FaInfoCircle } from "react-icons/fa";
 import { getDynamicBgClass } from "@/utils/colorUtils";
+import { getKeywordDetails } from "@/utils/keywordRegistry";
 import { t } from "@/utils/localization";
 
 interface CashFlowFormProps {
@@ -249,7 +250,11 @@ export default function CashFlowPage() {
           {
             field: "assetPurpose_id",
             headerName: t.cashFlow.assetPurpose || "Asset Purpose",
-            renderCell: (item) => getAssetPurposeName(item.assetPurpose_id),
+            renderCell: (item) => {
+              const name = getAssetPurposeName(item.assetPurpose_id);
+              const details = getKeywordDetails(name);
+              return <Badge bg={details.color}>{details.icon} {name}</Badge>;
+            },
           },
           {
             field: "income_id",
