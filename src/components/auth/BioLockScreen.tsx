@@ -71,7 +71,7 @@ const BioLockScreen: React.FC = () => {
       }}
     >
       <Container style={{ maxWidth: "400px" }}>
-        <Card className="text-center shadow-lg glass-card text-body">
+        <Card className="text-center shadow-lg text-body">
           <Card.Body className="py-5 px-4">
             {!usePin ? (
               <>
