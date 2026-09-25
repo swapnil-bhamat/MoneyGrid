@@ -21,6 +21,7 @@ import { useSharedDashboardData } from "@/contexts/DashboardDataContext";
 import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
 import { t } from "@/utils/localization";
 import { FINANCIAL_CATEGORIES } from "@/utils/constants";
+import BucketRefillAdvisor from "@/components/analytics/BucketRefillAdvisor";
 
 const capitalize = (str: string): string => {
   if (!str) return "";
@@ -177,6 +178,11 @@ const SwpPage: React.FC = () => {
 
   return (
     <div className="py-2 px-2">
+      <BucketRefillAdvisor
+        liveBucket1={shortTermBucketValue}
+        liveBucket2={longTermBucketValue}
+      />
+
       {/* Rebalancing Overview */}
       <Row className="mb-3">
         <Col xs={12} md={8} lg={8} className="mb-2">
