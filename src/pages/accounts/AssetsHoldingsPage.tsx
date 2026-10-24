@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import type { AssetHolding } from "@/infrastructure/db/db";
 import BasePage from "@/components/layout/BasePage";
 import FormModal from "@/components/common/FormModal";
-import { Form } from "react-bootstrap";
-import { toLocalCurrency, getActiveCurrency } from "@/utils/numberUtils";
+import { Form, Button } from "react-bootstrap";
+import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
 import { getDynamicBgClass } from "@/utils/colorUtils";
 import { getKeywordDetails } from "@/utils/keywordRegistry";
 import { t } from "@/utils/localization";
-
-import { fetchGoldData } from "@/services/marketData";
+import { BsArrowRepeat } from "react-icons/bs";
+import { INDMoneySyncModal } from "@/components/accounts/INDMoneySyncModal";
 
 interface AssetHoldingFormProps {
   show: boolean;
@@ -39,12 +39,13 @@ function AssetHoldingForm({
   const [existingAllocation, setExistingAllocation] = useState(
     item?.existingAllocation ?? 0
   );
+  const [units, setUnits] = useState<number | undefined>(item?.units);
   const [sip, setSip] = useState(item?.sip ?? 0);
   const [sipTypes_id, setSipTypesId] = useState(item?.sipTypes_id ?? 0);
   const [buckets_id, setBucketsId] = useState(item?.buckets_id ?? 0);
   const [comments, setComments] = useState(item?.comments ?? "");
 
-  // Market Link State
+  // Physical Gold specs (Informational only, not linked to external API)
   const [marketType, setMarketType] = useState<"GOLD" | "NONE">(
     (item?.marketType as "GOLD" | "NONE") ?? "NONE"
   );
@@ -52,8 +53,6 @@ function AssetHoldingForm({
   const [goldPurity, setGoldPurity] = useState<"22K" | "24K">(
     item?.goldPurity ?? "24K"
   );
-  
-  const [goldRates, setGoldRates] = useState<{ "22K": number; "24K": number } | null>(null);
 
   const assetClasses = useLiveQuery(() => db.assetClasses.toArray()) ?? [];
   const assetSubClasses =
@@ -62,28 +61,6 @@ function AssetHoldingForm({
   const holders = useLiveQuery(() => db.holders.toArray()) ?? [];
   const sipTypes = useLiveQuery(() => db.sipTypes.toArray()) ?? [];
   const buckets = useLiveQuery(() => db.buckets.toArray()) ?? [];
-
-  // Fetch Gold Rates on mount
-  useEffect(() => {
-    const loadGold = async () => {
-      const gold = await fetchGoldData();
-      if (gold) {
-        setGoldRates({
-          "24K": gold.price_gram_24k,
-          "22K": gold.price_gram_22k,
-        });
-      }
-    };
-    loadGold();
-  }, []);
-
-  // Recalculate value
-  useEffect(() => {
-    if (marketType === "GOLD" && goldRates && grams > 0) {
-      const rate = goldRates[goldPurity];
-      setExistingAllocation(Number((grams * rate).toFixed(2)));
-    }
-  }, [marketType, grams, goldRates, goldPurity]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +72,7 @@ function AssetHoldingForm({
       holders_id,
       assetDetail,
       existingAllocation,
+      units,
       sip,
       sipTypes_id,
       buckets_id,
@@ -136,7 +114,7 @@ function AssetHoldingForm({
         defaultText={t.common.selectAssetSubClass || "Select Sub Class"}
       />
       
-      {/* Market Link Section */}
+      {/* Physical Gold Metadata Section (Optional) */}
       <div className="p-3 mb-3 rounded border">
         <h6 className="mb-3">{t.assets.marketLink}</h6>
         <FormSelect
@@ -145,8 +123,8 @@ function AssetHoldingForm({
           value={marketType}
           onChange={(e) => setMarketType(e.target.value as "GOLD" | "NONE")}
           options={[
-            { id: "NONE", name: t.assets.noneManualEntry || "None (Manual Entry)" },
-            { id: "GOLD", name: t.assets.gold || "Gold" },
+            { id: "NONE", name: t.assets.noneManualEntry || "None (Standard Asset)" },
+            { id: "GOLD", name: t.assets.gold || "Gold (Jewellery/Bars)" },
           ]}
           defaultText={t.assets.selectLinkType || "Select Link Type"}
         />
@@ -166,31 +144,54 @@ function AssetHoldingForm({
             />
 
             <Form.Group className="mb-3" controlId="formGrams">
-                <Form.Label>{t.assets.grams} {goldRates && <small className="text-muted">(Rate: {getActiveCurrency().symbol}{goldRates[goldPurity]?.toFixed(2)}/g)</small>}</Form.Label>
-                <Form.Control
+              <Form.Label>{t.assets.grams}</Form.Label>
+              <Form.Control
                 type="number"
                 step="0.01"
                 value={grams}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setGrams(Number(e.target.value))
+                  setGrams(Number(e.target.value))
                 }
-                />
+              />
             </Form.Group>
           </>
         )}
       </div>
 
+      <Form.Group className="mb-3" controlId="formAssetDetail">
+        <Form.Label>{t.assets.detail}</Form.Label>
+        <Form.Control
+          type="text"
+          value={assetDetail}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setAssetDetail(e.target.value)
+          }
+        />
+      </Form.Group>
+
+      {/* Units / Quantity field for MFs, Stocks, etc. */}
+      <Form.Group className="mb-3" controlId="formUnits">
+        <Form.Label>{t.common.quantity || "Quantity / Units"}</Form.Label>
+        <Form.Control
+          type="number"
+          step="0.001"
+          placeholder="e.g. 29187.88"
+          value={units !== undefined && !isNaN(units) ? units : ""}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setUnits(e.target.value !== "" ? Number(e.target.value) : undefined)
+          }
+        />
+      </Form.Group>
+
+      {/* Flat Valuation */}
       <Form.Group className="mb-3" controlId="formExistingAllocation">
         <Form.Label>{t.assets.existingAllocation}</Form.Label>
         <AmountInput
           value={existingAllocation}
-          readOnly={marketType !== "NONE"}
-          className={marketType !== "NONE" ? "bg-secondary-subtle" : ""}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setExistingAllocation(Number(e.target.value))
           }
         />
-        {marketType !== "NONE" && <Form.Text className="text-muted">{t.assets.autoCalculatedText || "Auto-calculated based on market rate"}</Form.Text>}
       </Form.Group>
 
       <FormSelect
@@ -213,16 +214,6 @@ function AssetHoldingForm({
         defaultText={t.common.selectHolder || "Select Holder"}
       />
 
-      <Form.Group className="mb-3" controlId="formAssetDetail">
-        <Form.Label>{t.assets.detail}</Form.Label>
-        <Form.Control
-          type="text"
-          value={assetDetail}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setAssetDetail(e.target.value)
-          }
-        />
-      </Form.Group>
       <Form.Group className="mb-3" controlId="formSIP">
         <Form.Label>{t.assets.sipAmount}</Form.Label>
         <AmountInput
@@ -267,6 +258,7 @@ function AssetHoldingForm({
 }
 
 export default function AssetsHoldingsPage() {
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const assetsHoldings = useLiveQuery(() => db.assetsHoldings.toArray()) ?? [];
   const assetClasses = useLiveQuery(() => db.assetClasses.toArray()) ?? [];
   const assetSubClasses =
@@ -320,73 +312,97 @@ export default function AssetsHoldingsPage() {
   };
 
   return (
-    <BasePage<AssetHolding>
-      title={t.assets.title}
-      data={[...assetsHoldings].sort((a, b) => (a.assetClasses_id || 0) - (b.assetClasses_id || 0))}
-      groupBy={(item) => {
-        const name = getAssetClassName(item.assetClasses_id);
-        const details = getKeywordDetails(name);
-        return {
-          key: String(item.assetClasses_id),
-          label: name ? `${details.icon} ${name}` : (t.assets.unknownClass || "Unknown Class")
-        };
-      }}
-      groupSort={(a, b) => Number(a) - Number(b)}
-      groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.existingAllocation, 0))}
-      columns={[
-        { field: "assetDetail", headerName: t.assets.detail },
-        {
-          field: "assetSubClasses_id",
-          headerName: t.assets.subClass,
-          renderCell: (item) => getAssetSubClassName(item.assetSubClasses_id),
-        },
-        {
-          field: "goals_id",
-          headerName: t.assets.goal,
-          renderCell: (item) => getGoalName(item.goals_id),
-        },
-        {
-          field: "holders_id",
-          headerName: t.assets.holder,
-          renderCell: (item) => getHolderName(item.holders_id),
-        },
-        {
-          field: "marketType",
-          headerName: t.common.quantity,
-          renderCell: (item) => {
-            if (item.marketType === "GOLD" && item.grams) {
-              return `${item.grams} g`;
-            }
-            return "-";
+    <>
+      <BasePage<AssetHolding>
+        title={t.assets.title}
+        data={[...assetsHoldings].sort((a, b) => (a.assetClasses_id || 0) - (b.assetClasses_id || 0))}
+        groupBy={(item) => {
+          const name = getAssetClassName(item.assetClasses_id);
+          const details = getKeywordDetails(name);
+          return {
+            key: String(item.assetClasses_id),
+            label: name ? `${details.icon} ${name}` : (t.assets.unknownClass || "Unknown Class")
+          };
+        }}
+        groupSort={(a, b) => Number(a) - Number(b)}
+        groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.existingAllocation, 0))}
+        extraActions={
+          <Button
+            variant="outline-success"
+            className="d-flex align-items-center gap-1 px-3"
+            onClick={() => setShowSyncModal(true)}
+            title="Sync latest portfolio from INDmoney"
+          >
+            <BsArrowRepeat size={18} />
+            <span className="d-none d-sm-inline">Sync from INDmoney</span>
+          </Button>
+        }
+        columns={[
+          { field: "assetDetail", headerName: t.assets.detail },
+          {
+            field: "assetSubClasses_id",
+            headerName: t.assets.subClass,
+            renderCell: (item) => getAssetSubClassName(item.assetSubClasses_id),
           },
-        },
-        {
-          field: "existingAllocation",
-          headerName: t.assets.existingAllocation,
-          renderCell: (item) => toLocalCurrency(item.existingAllocation),
-        },
-        {
-          field: "sip",
-          headerName: t.assets.sipAmount,
-          renderCell: (item) => toLocalCurrency(item.sip),
-        },
-        {
-          field: "sipTypes_id",
-          headerName: t.assets.sipType,
-          renderCell: (item) => getSipTypeName(item.sipTypes_id),
-        },
-        {
-          field: "buckets_id",
-          headerName: t.assets.swpBucket,
-          renderCell: (item) => getBucketName(item.buckets_id),
-        },
-        { field: "comments", headerName: t.common.additionalInfo },
-      ]}
-      onAdd={handleAdd}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      FormComponent={AssetHoldingForm}
-      getRowClassName={(item) => getDynamicBgClass(item.assetClasses_id)}
-    />
+          {
+            field: "goals_id",
+            headerName: t.assets.goal,
+            renderCell: (item) => getGoalName(item.goals_id),
+          },
+          {
+            field: "holders_id",
+            headerName: t.assets.holder,
+            renderCell: (item) => getHolderName(item.holders_id),
+          },
+          {
+            field: "units",
+            headerName: t.common.quantity || "Quantity / Units",
+            renderCell: (item) => {
+              if (item.marketType === "GOLD" && item.grams) {
+                return `${item.grams} g`;
+              }
+              if (item.units != null && !isNaN(item.units)) {
+                return item.units.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 3,
+                });
+              }
+              return "-";
+            },
+          },
+          {
+            field: "existingAllocation",
+            headerName: t.assets.existingAllocation,
+            renderCell: (item) => toLocalCurrency(item.existingAllocation),
+          },
+          {
+            field: "sip",
+            headerName: t.assets.sipAmount,
+            renderCell: (item) => toLocalCurrency(item.sip),
+          },
+          {
+            field: "sipTypes_id",
+            headerName: t.assets.sipType,
+            renderCell: (item) => getSipTypeName(item.sipTypes_id),
+          },
+          {
+            field: "buckets_id",
+            headerName: t.assets.swpBucket,
+            renderCell: (item) => getBucketName(item.buckets_id),
+          },
+          { field: "comments", headerName: t.common.additionalInfo },
+        ]}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        FormComponent={AssetHoldingForm}
+        getRowClassName={(item) => getDynamicBgClass(item.assetClasses_id)}
+      />
+
+      <INDMoneySyncModal
+        show={showSyncModal}
+        onHide={() => setShowSyncModal(false)}
+      />
+    </>
   );
 }

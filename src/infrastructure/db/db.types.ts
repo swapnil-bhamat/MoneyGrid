@@ -84,6 +84,9 @@ export interface AssetHolding extends BaseRecord {
   sipTypes_id: number;
   buckets_id: number;
   comments: string;
+  // Units / Scheme tracking
+  units?: number;
+  schemeCode?: string;
   // Market Link Fields
   grams?: number; // For Gold
   marketType?: "GOLD" | "NONE";
