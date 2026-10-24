@@ -29,7 +29,8 @@ import {
   BsGraphUp,
   BsFileEarmarkText,
   BsSliders,
-  BsShieldCheck
+  BsShieldCheck,
+  BsArrowRepeat
 } from "react-icons/bs";
 import { VscDebugLineByLine } from "react-icons/vsc";
 import { FaCloud, FaHistory, FaDownload, FaUpload, FaTrash, FaExclamationTriangle, FaTrashRestore } from "react-icons/fa";
@@ -57,6 +58,7 @@ import SipTypesPage from '@/pages/transactions/SipTypesPage';
 import LoanTypesPage from '@/pages/transactions/LoanTypesPage';
 import SystemPropertiesPage from '@/pages/backups/SystemPropertiesPage';
 import InsuranceTypesPage from '@/pages/transactions/InsuranceTypesPage';
+import { INDMoneySyncModal } from "@/components/accounts/INDMoneySyncModal";
 
 const backupColumns: Column<DriveFile>[] = [
   {
@@ -445,6 +447,7 @@ export default function SettingsPage() {
   };
 
   // Backup PIN states
+  const [showINDMoneyModal, setShowINDMoneyModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -816,6 +819,26 @@ export default function SettingsPage() {
         </Tab>
 
         <Tab
+          eventKey="indmoney"
+          title={<><BsArrowRepeat className="me-2" />INDmoney</>}
+          tabClassName="h-100 d-flex align-items-center"
+        >
+          <Card className="mb-4">
+            <Card.Header>INDmoney Automated Portfolio Sync</Card.Header>
+            <Card.Body>
+              <h5>Zero-Effort Portfolio Reconciler</h5>
+              <p className="text-body-secondary mb-3">
+                Import JSON exports pulled from Claude AI via INDmoney MCP to automatically sync latest mutual fund values, units, EPF, NPS, FDs, and bank balances without manual typing.
+              </p>
+              <Button variant="primary" onClick={() => setShowINDMoneyModal(true)}>
+                <BsArrowRepeat className="me-2" />
+                Launch INDmoney Sync Wizard
+              </Button>
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab
           eventKey="data"
           title={<><BsDatabase className="me-2" />Data</>}
           tabClassName="h-100 d-flex align-items-center"
@@ -838,6 +861,11 @@ export default function SettingsPage() {
           <DebugConsole />
         </Tab>
       </Tabs>
+
+      <INDMoneySyncModal
+        show={showINDMoneyModal}
+        onHide={() => setShowINDMoneyModal(false)}
+      />
     </Container>
   );
 }

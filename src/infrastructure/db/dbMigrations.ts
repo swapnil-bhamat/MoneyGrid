@@ -1,7 +1,7 @@
 import Dexie, { Transaction } from "dexie";
 import { logInfo } from "@/services/logger";
 
-export const CURRENT_DB_VERSION = 12;
+export const CURRENT_DB_VERSION = 13;
 
 export function defineSchema(db: Dexie) {
   // Define schema for version 1 (Base)
@@ -196,8 +196,8 @@ export function defineSchema(db: Dexie) {
     insurances: "++id, holders_id, insuranceType_id",
   });
 
-  // Version 12 (Current) - Added fromAccountId and toAccountId to CashFlow
-  db.version(CURRENT_DB_VERSION).stores({
+  // Version 12 (Previous) - Added fromAccountId and toAccountId to CashFlow
+  db.version(12).stores({
     configs: "++id",
     assetPurposes: "++id",
     loanTypes: "++id",
@@ -219,4 +219,41 @@ export function defineSchema(db: Dexie) {
     insuranceTypes: "++id",
     insurances: "++id, holders_id, insuranceType_id",
   });
+
+  // Version 13 (Current) - External Sync Primitives & Multi-Source Reconciliation
+  db.version(CURRENT_DB_VERSION)
+    .stores({
+      configs: "++id",
+      assetPurposes: "++id",
+      loanTypes: "++id",
+      holders: "++id, *externalKeys",
+      sipTypes: "++id",
+      buckets: "++id",
+      assetClasses: "++id",
+      assetSubClasses: "++id, assetClasses_id",
+      goals: "++id, assetPurpose_id",
+      income: "++id, accounts_id, holders_id",
+      cashFlow: "++id, accounts_id, holders_id, assetPurpose_id, goal_id, income_id, fromAccountId",
+      accounts: "++id, holders_id",
+      assetsHoldings:
+        "++id, assetClasses_id, assetSubClasses_id, goals_id, holders_id, buckets_id, externalId",
+      liabilities: "++id, loanType_id",
+      assetsProjection: "++id, assetSubClasses_id",
+      liabilitiesProjection: "++id, liability_id, loanType_id",
+      upcomingExpenses: "++id, assetPurpose_id",
+      insuranceTypes: "++id",
+      insurances: "++id, holders_id, insuranceType_id",
+    })
+    .upgrade(async (tx: Transaction) => {
+      logInfo("Upgrading to Database Schema v13 (External Sync Primitives)");
+      // Seed default externalKeys for existing holders
+      await tx
+        .table("holders")
+        .toCollection()
+        .modify((record: any) => {
+          if (!record.externalKeys) {
+            record.externalKeys = [record.name.toLowerCase().trim()];
+          }
+        });
+    });
 }
