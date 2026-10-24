@@ -68,10 +68,15 @@ export function resolveHolderId(
   const normalizedName = (memberName || "").toLowerCase().trim();
   const normalizedRel = (relation || "").toLowerCase().trim();
 
-  // 2. Direct name match against all database holders
+  // 2. Direct name or externalKeys alias match against all database holders
   for (const h of holders) {
     const hName = h.name.toLowerCase().trim();
-    if (hName && (normalizedKey.includes(hName) || normalizedName.includes(hName) || hName.includes(normalizedKey))) {
+    const aliases = (h.externalKeys || []).map((k) => k.toLowerCase().trim());
+    if (
+      aliases.includes(normalizedKey) ||
+      aliases.includes(normalizedName) ||
+      (hName && (normalizedKey.includes(hName) || normalizedName.includes(hName) || hName.includes(normalizedKey)))
+    ) {
       return { id: h.id, name: h.name };
     }
   }
@@ -122,10 +127,12 @@ function findBestHoldingMatch(
   // Filter holdings for this holder
   const holderCandidates = availableHoldings.filter((h) => h.holders_id === holderId);
 
-  // 1. Direct Scheme Code match if present
+  // 1. Direct Scheme Code or External ID match if present
   if (indSchemeId) {
     const codeMatch = holderCandidates.find(
-      (h) => h.schemeCode && String(h.schemeCode).trim() === indSchemeId
+      (h) =>
+        (h.schemeCode && String(h.schemeCode).trim() === indSchemeId) ||
+        (h.externalId && String(h.externalId).trim() === indSchemeId)
     );
     if (codeMatch) return codeMatch;
   }
@@ -239,6 +246,9 @@ export function generateReconciliationDiff(
       for (const mf of assets.mutual_fund.holdings) {
         const val = mf.current_value ?? mf.market_value ?? 0;
         const qty = mf.quantity ?? mf.units ?? 0;
+        const investedAmt = mf.invested_amount ?? mf.invested;
+        const unitNav = mf.unit_price ?? mf.nav;
+        const extId = mf.scheme_id ? String(mf.scheme_id).trim() : undefined;
         const name = mf.name || mf.scheme_name || "Unknown Mutual Fund";
         const matched = findBestHoldingMatch(mf, holderInfo.id, "mutual_fund", currentHoldings);
 
@@ -263,6 +273,9 @@ export function generateReconciliationDiff(
             oldUnits,
             newUnits: qty,
             schemeCode: mf.scheme_id,
+            externalId: extId,
+            investedAmount: investedAmt,
+            nav: unitNav,
             assetSubClasses_id: matched.assetSubClasses_id,
             assetClasses_id: matched.assetClasses_id,
             status: isChanged ? "update" : "unchanged",
@@ -282,6 +295,9 @@ export function generateReconciliationDiff(
             delta: val,
             newUnits: qty,
             schemeCode: mf.scheme_id,
+            externalId: extId,
+            investedAmount: investedAmt,
+            nav: unitNav,
             assetSubClasses_id: equityMfSubClass,
             assetClasses_id: 1, // Equity
             status: "new",
@@ -294,6 +310,7 @@ export function generateReconciliationDiff(
     // 2. Process EPF
     if (assets.epf) {
       const epfVal = assets.epf.total_value ?? (assets.epf.holdings || []).reduce((s, h) => s + (h.market_value || h.current_value || 0), 0);
+      const epfInvested = assets.epf.invested;
       if (epfVal > 0) {
         const matched = currentHoldings.find(
           (h) => h.holders_id === holderInfo.id && (h.assetSubClasses_id === 6 || normalizeName(h.assetDetail).includes("epf"))
@@ -314,6 +331,7 @@ export function generateReconciliationDiff(
             oldValue: oldVal,
             newValue: epfVal,
             delta,
+            investedAmount: epfInvested,
             status: isChanged ? "update" : "unchanged",
             selected: isChanged,
           });
@@ -324,6 +342,7 @@ export function generateReconciliationDiff(
     // 3. Process NPS
     if (assets.nps) {
       const npsVal = assets.nps.total_value ?? assets.nps.holdings?.[0]?.market_value ?? 0;
+      const npsInvested = assets.nps.invested ?? assets.nps.holdings?.[0]?.invested;
       if (npsVal > 0) {
         const matched = currentHoldings.find(
           (h) => h.holders_id === holderInfo.id && normalizeName(h.assetDetail).includes("nps")
@@ -344,6 +363,7 @@ export function generateReconciliationDiff(
             oldValue: oldVal,
             newValue: npsVal,
             delta,
+            investedAmount: npsInvested,
             status: isChanged ? "update" : "unchanged",
             selected: isChanged,
           });
@@ -354,6 +374,7 @@ export function generateReconciliationDiff(
     // 4. Process Fixed Deposit
     if (assets.fixed_deposit) {
       const fdVal = assets.fixed_deposit.total_value ?? (assets.fixed_deposit.holdings || []).reduce((s, h) => s + (h.market_value || 0), 0);
+      const fdInvested = assets.fixed_deposit.invested;
       if (fdVal > 0) {
         const matched = currentHoldings.find(
           (h) => h.holders_id === holderInfo.id && h.assetSubClasses_id === 9
@@ -374,6 +395,7 @@ export function generateReconciliationDiff(
             oldValue: oldVal,
             newValue: fdVal,
             delta,
+            investedAmount: fdInvested,
             status: isChanged ? "update" : "unchanged",
             selected: isChanged,
           });
@@ -384,6 +406,7 @@ export function generateReconciliationDiff(
     // 5. Process Gold
     if (assets.gold && (assets.gold.total_value || assets.gold.invested)) {
       const goldVal = assets.gold.total_value ?? assets.gold.invested ?? 0;
+      const goldInvested = assets.gold.invested;
       if (goldVal > 0) {
         // Find existing gold holdings for this holder, or across family if holder doesn't have gold
         let goldHoldings = currentHoldings.filter(
@@ -413,6 +436,7 @@ export function generateReconciliationDiff(
             oldValue: oldVal,
             newValue: goldVal,
             delta,
+            investedAmount: goldInvested,
             status: isChanged ? "update" : "unchanged",
             selected: isChanged,
             notes: matched.grams ? `${matched.grams}g (${matched.goldPurity || "24K"})` : undefined,
@@ -449,6 +473,7 @@ export function generateReconciliationDiff(
               oldValue: oldVal,
               newValue: share,
               delta,
+              investedAmount: goldInvested ? Number((goldInvested * (oldVal / (totalExistingGold || 1))).toFixed(2)) : undefined,
               status: isChanged ? "update" : "unchanged",
               selected: isChanged,
               notes: gh.grams ? `${gh.grams}g (${gh.goldPurity || "24K"})` : undefined,
@@ -510,9 +535,15 @@ export function generateReconciliationDiff(
       for (const st of assets.indian_stock.holdings) {
         const val = st.market_value ?? st.current_value ?? 0;
         const qty = st.quantity ?? st.units ?? 0;
+        const investedAmt = st.invested_amount ?? st.invested;
+        const unitPrice = st.unit_price;
+        const extId = st.investment_code || st.scheme_id;
         const name = st.name || "Stock";
         const matched = currentHoldings.find(
-          (h) => h.holders_id === holderInfo.id && normalizeName(h.assetDetail) === normalizeName(name)
+          (h) =>
+            h.holders_id === holderInfo.id &&
+            ((extId && (h.externalId === extId || h.schemeCode === extId)) ||
+              normalizeName(h.assetDetail) === normalizeName(name))
         );
 
         if (matched) {
@@ -533,6 +564,9 @@ export function generateReconciliationDiff(
             delta,
             oldUnits: matched.units,
             newUnits: qty,
+            externalId: extId,
+            investedAmount: investedAmt,
+            nav: unitPrice,
             status: isChanged ? "update" : "unchanged",
             selected: isChanged,
           });
@@ -548,6 +582,9 @@ export function generateReconciliationDiff(
             newValue: val,
             delta: val,
             newUnits: qty,
+            externalId: extId,
+            investedAmount: investedAmt,
+            nav: unitPrice,
             assetSubClasses_id: stockSubClass,
             assetClasses_id: 1, // Equity
             status: "new",
@@ -639,15 +676,32 @@ export function generateReconciliationDiff(
 /**
  * Safely executes reconciliation updates inside a single Dexie transaction.
  * Preserves all app planning metadata (goals_id, sip, buckets_id, comments, etc.).
+ * Persists custom holder mappings to db.holders.externalKeys for permanent recall.
  */
 export async function applyINDMoneyReconciliation(
   items: ReconciliationItem[],
-  currentHoldings: AssetHolding[]
+  currentHoldings: AssetHolding[],
+  customHolderMap?: Record<string, number>
 ): Promise<{ updatedCount: number; addedCount: number }> {
   let updatedCount = 0;
   let addedCount = 0;
 
-  await db.transaction("rw", [db.assetsHoldings], async () => {
+  await db.transaction("rw", [db.assetsHoldings, db.holders], async () => {
+    // 1. If customHolderMap was provided, save aliases to db.holders so they are remembered permanently
+    if (customHolderMap) {
+      for (const [memberKey, holderId] of Object.entries(customHolderMap)) {
+        if (!memberKey || !holderId) continue;
+        const holder = await db.holders.get(holderId);
+        if (holder) {
+          const keys = new Set(holder.externalKeys || []);
+          keys.add(memberKey.toLowerCase().trim());
+          await db.holders.update(holderId, { externalKeys: Array.from(keys) });
+        }
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
     for (const item of items) {
       if (!item.selected) continue;
 
@@ -659,6 +713,17 @@ export async function applyINDMoneyReconciliation(
             existingAllocation: item.newValue,
             units: item.newUnits !== undefined ? item.newUnits : existing.units,
             schemeCode: item.schemeCode || existing.schemeCode,
+            externalId:
+              item.externalId ||
+              existing.externalId ||
+              (item.schemeCode ? String(item.schemeCode) : undefined),
+            externalSource: existing.externalSource || "INDMONEY",
+            investedAmount:
+              item.investedAmount !== undefined
+                ? item.investedAmount
+                : existing.investedAmount,
+            nav: item.nav !== undefined ? item.nav : existing.nav,
+            lastSyncedAt: nowIso,
           };
           await db.assetsHoldings.put(updatedRecord);
           updatedCount++;
@@ -673,6 +738,13 @@ export async function applyINDMoneyReconciliation(
           existingAllocation: item.newValue,
           units: item.newUnits,
           schemeCode: item.schemeCode,
+          externalId:
+            item.externalId ||
+            (item.schemeCode ? String(item.schemeCode) : undefined),
+          externalSource: "INDMONEY",
+          investedAmount: item.investedAmount,
+          nav: item.nav,
+          lastSyncedAt: nowIso,
           sip: 0,
           sipTypes_id: 1,
           buckets_id: 1, // Default short-term/general bucket

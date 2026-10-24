@@ -20,6 +20,8 @@ export interface LoanType extends BaseRecord {
 
 export interface Holder extends BaseRecord {
   name: string;
+  relationship?: string;
+  externalKeys?: string[];
 }
 
 export interface SipType extends BaseRecord {
@@ -52,6 +54,8 @@ export interface Account extends BaseRecord {
   bank: string;
   accountNumber: string;
   holders_id: number;
+  lastFourDigits?: string;
+  balance?: number;
 }
 
 export interface Income extends BaseRecord {
@@ -87,6 +91,13 @@ export interface AssetHolding extends BaseRecord {
   // Units / Scheme tracking
   units?: number;
   schemeCode?: string;
+  // External Sync Primitives (v13)
+  externalId?: string;
+  externalSource?: "INDMONEY" | "ZERODHA" | "CAMS" | "MANUAL";
+  investedAmount?: number;
+  nav?: number;
+  lastSyncedAt?: string;
+  isin?: string;
   // Market Link Fields
   grams?: number; // For Gold
   marketType?: "GOLD" | "NONE";
@@ -167,4 +178,4 @@ export interface InitializationData {
   insurances: Insurance[];
 }
 
-export const CURRENT_DB_VERSION = 12;
+export const CURRENT_DB_VERSION = 13;

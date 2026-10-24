@@ -301,7 +301,8 @@ export const INDMoneySyncModal: React.FC<INDMoneySyncModalProps> = ({
 
       const { updatedCount, addedCount } = await applyINDMoneyReconciliation(
         diffResult.items,
-        holdings
+        holdings,
+        customHolderMap
       );
 
       setSyncSuccess({ updated: updatedCount, added: addedCount });
@@ -683,8 +684,14 @@ export const INDMoneySyncModal: React.FC<INDMoneySyncModalProps> = ({
                             {item.assetName}
                           </div>
                           {item.schemeCode && (
-                            <small className="text-muted">
+                            <small className="text-muted d-block">
                               Scheme ID: {item.schemeCode}
+                            </small>
+                          )}
+                          {item.investedAmount !== undefined && item.investedAmount > 0 && (
+                            <small className="text-muted d-block">
+                              Invested: {toLocalCurrency(item.investedAmount)}
+                              {item.nav ? ` · NAV: ₹${item.nav.toFixed(2)}` : ""}
                             </small>
                           )}
                           {item.notes && (

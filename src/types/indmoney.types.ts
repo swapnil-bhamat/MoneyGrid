@@ -145,6 +145,9 @@ export interface ReconciliationItem {
   oldUnits?: number;
   newUnits?: number;
   schemeCode?: string;
+  externalId?: string;
+  investedAmount?: number;
+  nav?: number;
   assetSubClasses_id?: number;
   assetClasses_id?: number;
   status: ReconciliationStatus;

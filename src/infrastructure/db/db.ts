@@ -216,6 +216,17 @@ export function sanitizeData(data: InitializationData): InitializationData {
     });
   }
 
+  if (dataVersion < 13) {
+    // Seed externalKeys for Holders
+    sanitized.holders = sanitized.holders.map((record: any) => {
+      const newRecord = { ...record };
+      if (!newRecord.externalKeys && newRecord.name) {
+        newRecord.externalKeys = [newRecord.name.toLowerCase().trim()];
+      }
+      return newRecord;
+    });
+  }
+
   return sanitized;
 }
 

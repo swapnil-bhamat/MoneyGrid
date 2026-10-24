@@ -373,7 +373,28 @@ export default function AssetsHoldingsPage() {
           {
             field: "existingAllocation",
             headerName: t.assets.existingAllocation,
-            renderCell: (item) => toLocalCurrency(item.existingAllocation),
+            renderCell: (item) => {
+              const currentVal = item.existingAllocation;
+              if (item.investedAmount && item.investedAmount > 0 && currentVal) {
+                const profit = currentVal - item.investedAmount;
+                const returnPct = ((profit / item.investedAmount) * 100).toFixed(1);
+                const isPositive = profit >= 0;
+                return (
+                  <div>
+                    <div>{toLocalCurrency(currentVal)}</div>
+                    <small
+                      className={isPositive ? "text-success" : "text-danger"}
+                      style={{ fontSize: "0.75rem", display: "block" }}
+                      title={`Invested: ${toLocalCurrency(item.investedAmount)}`}
+                    >
+                      {isPositive ? "+" : ""}
+                      {returnPct}% ({toLocalCurrency(profit)})
+                    </small>
+                  </div>
+                );
+              }
+              return toLocalCurrency(currentVal);
+            },
           },
           {
             field: "sip",
