@@ -5,7 +5,7 @@ import {
   resolveHolderId,
   generateReconciliationDiff,
 } from "@/services/indmoneyMapper";
-import { AssetHolding, Holder } from "@/infrastructure/db/db.types";
+import { AssetHolding, Holder, Liability, LoanType } from "@/infrastructure/db/db.types";
 
 describe("INDmoney Mapper Service", () => {
   const mockHolders: Holder[] = [
@@ -258,9 +258,23 @@ describe("INDmoney Mapper Service", () => {
                 },
               ],
             },
-            epf: { total_value: 1927610 },
+            epf: {
+              total_value: 1927610,
+              holdings: [
+                { name: "Cimpress India Private Limited", market_value: 1822697 },
+                { name: "Mrr Soft", market_value: 94232 },
+                { name: "India Nic Infotech Limited", market_value: 7500 },
+                { name: "Zeon Solution Pvt Ltd., Near V.R.C.E. Telephone", market_value: 3181 },
+              ],
+            },
             nps: { total_value: 173124.16 },
-            fixed_deposit: { total_value: 1224630.03 },
+            fixed_deposit: {
+              total_value: 1224630.03,
+              holdings: [
+                { name: "State Bank Of India", market_value: 612315.02 },
+                { name: "State Bank Of India", market_value: 612315.02 },
+              ],
+            },
             real_estate: {
               holdings: [{ name: "Wadi Home", market_value: 8000000 }],
             },
@@ -325,28 +339,33 @@ describe("INDmoney Mapper Service", () => {
     expect(corpBondSonu?.newValue).toBe(1124819.2);
     expect(corpBondSonu?.newUnits).toBe(268.8);
 
-    // Verify EPF
+    // Verify EPF consolidates to holding ID 8 and doesn't create duplicate employer entries
     const epf = diff.items.find((i) => i.holdingId === 8);
     expect(epf).toBeDefined();
     expect(epf?.newValue).toBe(1927610);
+    expect(epf?.status).toBe("update");
+    expect(epf?.notes).toContain("Cimpress");
+    expect(diff.items.some((i) => i.assetName.includes("Cimpress"))).toBe(false);
 
     // Verify NPS
     const nps = diff.items.find((i) => i.holdingId === 7);
     expect(nps).toBeDefined();
     expect(nps?.newValue).toBe(173124.16);
 
-    // Verify FD
+    // Verify FD consolidates to holding ID 9 and doesn't split into two halves
     const fd = diff.items.find((i) => i.holdingId === 9);
     expect(fd).toBeDefined();
     expect(fd?.newValue).toBe(1224630.03);
+    expect(fd?.status).toBe("update");
+    expect(diff.items.filter((i) => i.category === "fixed_deposit").length).toBe(1);
 
     // Verify Wadi Home is unchanged
     const wadi = diff.items.find((i) => i.holdingId === 25);
     expect(wadi).toBeDefined();
     expect(wadi?.status).toBe("unchanged");
 
-    // Verify Gold valuation updates from INDmoney
-    const samplePayloadWithGold = {
+    // Verify physical gold with grams is protected as app_only when INDmoney only has a lump sum
+    const samplePayloadWithGoldLump = {
       members: {
         swapnil: {
           assets: {
@@ -355,11 +374,33 @@ describe("INDmoney Mapper Service", () => {
         },
       },
     };
-    const diffWithGold = generateReconciliationDiff(samplePayloadWithGold, mockHoldings, mockHolders);
-    const goldItem = diffWithGold.items.find((i) => i.holdingId === 18);
-    expect(goldItem).toBeDefined();
-    expect(goldItem?.status).toBe("update");
-    expect(goldItem?.newValue).toBe(5050386);
+    const diffWithGoldLump = generateReconciliationDiff(samplePayloadWithGoldLump, mockHoldings, mockHolders);
+    const protectedGold = diffWithGoldLump.items.find((i) => i.holdingId === 18);
+    expect(protectedGold).toBeDefined();
+    expect(protectedGold?.status).toBe("app_only");
+
+    // Verify row-level gold holdings from INDmoney reconcile cleanly when itemized
+    const samplePayloadWithItemizedGold = {
+      family: {
+        members: [{ key: "prerana", name: "Prerana Bhamat", relation_to_user: "wife" }],
+      },
+      members: {
+        prerana: {
+          assets: {
+            gold: {
+              holdings: [
+                { name: "24 K Gold Jewellery", market_value: 1850000 },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const diffWithItemizedGold = generateReconciliationDiff(samplePayloadWithItemizedGold, mockHoldings, mockHolders);
+    const itemizedGold = diffWithItemizedGold.items.find((i) => i.holdingId === 18);
+    expect(itemizedGold).toBeDefined();
+    expect(itemizedGold?.status).toBe("update");
+    expect(itemizedGold?.newValue).toBe(1850000);
 
     // Verify custom holder map override
     const customMapDiff = generateReconciliationDiff(
@@ -381,6 +422,89 @@ describe("INDmoney Mapper Service", () => {
     expect(relPower).toBeDefined();
     expect(relPower?.status).toBe("new");
     expect(relPower?.newValue).toBe(16.43);
+
+    // Verify Liabilities mapping (Home loan & Credit card)
+    const payloadWithLiab = {
+      members: {
+        swapnil: {
+          liabilities: {
+            total_loan_balance: 6121034,
+            loans: [
+              {
+                lender: "HDFC Bank Ltd",
+                loan_type: "HOUSING LOAN",
+                current_balance: 5851117,
+              },
+              {
+                lender: "HDFC Bank Ltd",
+                loan_type: "PROPERTY LOAN",
+                current_balance: 269917,
+              },
+            ],
+            credit_cards: [
+              {
+                name: "ICICI Coral •• 3004",
+                total_due: 1431,
+                due_date: "2026-11-07",
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const mockLiabilities: Liability[] = [
+      {
+        id: 2,
+        loanType_id: 2,
+        loanAmount: 5915000,
+        loanStartDate: "05-12-2025",
+        totalMonths: 300,
+        lender: "HDFC Bank Ltd",
+      },
+      {
+        id: 3,
+        loanType_id: 3,
+        loanAmount: 272824,
+        loanStartDate: "05-12-2025",
+        totalMonths: 300,
+        lender: "HDFC Bank Ltd",
+      },
+    ];
+
+    const mockLoanTypes: LoanType[] = [
+      { id: 1, name: "Car Loan", type: "carLoan", interestRate: 7.8 },
+      { id: 2, name: "Home Loan", type: "home_loan", interestRate: 7.5 },
+      { id: 3, name: "Home Loan Insurance", type: "Home Loan Insurance", interestRate: 7.6 },
+      { id: 4, name: "Credit Card", type: "credit_card", interestRate: 0 },
+    ];
+
+    const liabDiff = generateReconciliationDiff(
+      payloadWithLiab,
+      [],
+      mockHolders,
+      [],
+      undefined,
+      mockLiabilities,
+      mockLoanTypes
+    );
+
+    const homeLoan = liabDiff.items.find((i) => i.liabilityId === 2);
+    expect(homeLoan).toBeDefined();
+    expect(homeLoan?.category).toBe("liability");
+    expect(homeLoan?.newValue).toBe(5851117);
+
+    const propLoan = liabDiff.items.find((i) => i.liabilityId === 3);
+    expect(propLoan).toBeDefined();
+    expect(propLoan?.category).toBe("liability");
+    expect(propLoan?.newValue).toBe(269917);
+
+    const cc = liabDiff.items.find(
+      (i) => i.category === "liability" && i.liabilityType === "credit_card"
+    );
+    expect(cc).toBeDefined();
+    expect(cc?.newValue).toBe(1431);
+    expect(cc?.dueDate).toBe("2026-11-07");
   });
 });
 

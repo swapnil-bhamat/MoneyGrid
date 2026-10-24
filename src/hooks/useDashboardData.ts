@@ -2,7 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/infrastructure/db/db";
 import type { AssetPurpose } from "@/infrastructure/db/db";
 import { calculateProjectedValue } from "@/services/projectionService";
-import { calculateRemainingBalance, calculateEMI } from "@/utils/financialUtils";
+import { calculateEMI } from "@/utils/financialUtils";
 import { t } from "@/utils/localization";
 import { FINANCIAL_CATEGORIES, BUDGET_RULES } from "@/utils/constants";
 import { getKeywordDetails } from "@/utils/keywordRegistry";
@@ -160,12 +160,10 @@ export function useDashboardData() {
         );
         if (!loanType) return acc;
 
-        const balance = calculateRemainingBalance(
-          liability.loanAmount,
-          loanType.interestRate,
-          liability.totalMonths,
-          liability.loanStartDate,
-        );
+        const balance =
+          liability.outstandingBalance !== undefined
+            ? liability.outstandingBalance
+            : liability.loanAmount;
 
         let emi = 0;
         if (balance > 0) {

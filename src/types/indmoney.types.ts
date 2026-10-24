@@ -134,6 +134,7 @@ export type ReconciliationStatus = "update" | "new" | "unchanged" | "app_only";
 export interface ReconciliationItem {
   id: string; // Unique row ID for UI
   holdingId?: number; // DB ID in db.assetsHoldings if matched
+  liabilityId?: number; // DB ID in db.liabilities if matched
   holderId: number; // DB ID in db.holders
   holderName: string;
   assetName: string;
@@ -150,6 +151,9 @@ export interface ReconciliationItem {
   nav?: number;
   assetSubClasses_id?: number;
   assetClasses_id?: number;
+  loanType_id?: number;
+  liabilityType?: "loan" | "credit_card";
+  dueDate?: string;
   status: ReconciliationStatus;
   selected: boolean;
   notes?: string;

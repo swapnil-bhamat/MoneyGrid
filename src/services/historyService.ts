@@ -26,6 +26,7 @@ export interface HistoryStatus {
 class HistoryService {
   private db: Dexie | null = null;
   private mode: HistoryMode = "normal";
+  private isPaused: boolean = false;
   private listeners: (() => void)[] = [];
   
   // Batching
@@ -38,6 +39,16 @@ class HistoryService {
 
   public setDb(db: Dexie) {
     this.db = db;
+  }
+
+  public pauseTracking() {
+    this.isPaused = true;
+    if (this.batchTimeout) clearTimeout(this.batchTimeout);
+    this.currentBatch = [];
+  }
+
+  public resumeTracking() {
+    this.isPaused = false;
   }
 
   private ensureStorage() {
@@ -103,6 +114,8 @@ class HistoryService {
   // --- Tracking Logic ---
 
   public trackOperation(op: HistoryOperation) {
+    if (this.isPaused) return;
+
     // Determine the Inverse Operation immediately
     let inverseOp: HistoryOperation | null = null;
 

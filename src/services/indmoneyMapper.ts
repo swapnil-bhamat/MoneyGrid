@@ -1,18 +1,25 @@
 import {
   INDMoneyPayload,
   INDMoneyHoldingItem,
+  INDMoneyAssetGroup,
   ReconciliationItem,
   ReconciliationResult,
   ReconciliationCategory,
   DetectedMember,
 } from "@/types/indmoney.types";
-import { AssetHolding, Holder, AssetSubClass } from "@/infrastructure/db/db.types";
+import {
+  AssetHolding,
+  Holder,
+  AssetSubClass,
+  Liability,
+  LoanType,
+} from "@/infrastructure/db/db.types";
 import { db } from "@/infrastructure/db/db";
 
 /**
- * Normalizes text for resilient matching (lowercase, removes punctuation, ignores common noise words)
+ * Normalizes text for direct, predictable 1:1 matching
  */
-export function normalizeName(name: string): string {
+export function normalizeName(name?: string): string {
   if (!name) return "";
   return name
     .toLowerCase()
@@ -36,7 +43,7 @@ export function parseINDMoneyPayload(rawText: string): INDMoneyPayload {
   }
   const parsed = JSON.parse(cleaned);
 
-  if (!parsed || (typeof parsed !== "object")) {
+  if (!parsed || typeof parsed !== "object") {
     throw new Error("Invalid JSON: Root must be an object.");
   }
 
@@ -48,7 +55,7 @@ export function parseINDMoneyPayload(rawText: string): INDMoneyPayload {
 }
 
 /**
- * Maps INDmoney member key or label to local Holder ID (Completely generic for open-source use)
+ * Resolves INDmoney member key or name to a local database Holder
  */
 export function resolveHolderId(
   memberKey: string,
@@ -58,76 +65,60 @@ export function resolveHolderId(
   relation?: string,
   memberIndex?: number
 ): { id: number; name: string } {
-  // 1. Check custom user selection from UI first
+  // 1. User manual override from UI
   if (customMap && customMap[memberKey] !== undefined) {
     const mapped = holders.find((h) => h.id === customMap[memberKey]);
     if (mapped) return { id: mapped.id, name: mapped.name };
   }
 
-  const normalizedKey = memberKey.toLowerCase().trim();
-  const normalizedName = (memberName || "").toLowerCase().trim();
-  const normalizedRel = (relation || "").toLowerCase().trim();
+  const normKey = normalizeName(memberKey);
+  const normName = normalizeName(memberName);
+  const normRel = normalizeName(relation);
 
-  // 2. Direct name or externalKeys alias match against all database holders
+  // 2. Direct name or externalKeys alias match
   for (const h of holders) {
-    const hName = h.name.toLowerCase().trim();
-    const aliases = (h.externalKeys || []).map((k) => k.toLowerCase().trim());
+    const hNorm = normalizeName(h.name);
+    const aliases = (h.externalKeys || []).map((k) => normalizeName(k));
     if (
-      aliases.includes(normalizedKey) ||
-      aliases.includes(normalizedName) ||
-      (hName && (normalizedKey.includes(hName) || normalizedName.includes(hName) || hName.includes(normalizedKey)))
+      aliases.includes(normKey) ||
+      aliases.includes(normName) ||
+      (hNorm && (normKey === hNorm || normName === hNorm || normName.includes(hNorm) || hNorm.includes(normName)))
     ) {
       return { id: h.id, name: h.name };
     }
   }
 
-  // 3. Generic relationship keywords
-  if (
-    normalizedRel.includes("spouse") ||
-    normalizedRel.includes("wife") ||
-    normalizedRel.includes("husband") ||
-    normalizedKey.includes("spouse") ||
-    normalizedKey.includes("wife") ||
-    normalizedKey.includes("husband")
-  ) {
+  // 3. Common relationship mapping
+  if (normRel.includes("spouse") || normRel.includes("wife") || normRel.includes("husband")) {
     if (holders[1]) return { id: holders[1].id, name: holders[1].name };
   }
-
-  if (
-    normalizedRel.includes("self") ||
-    normalizedRel.includes("head") ||
-    normalizedKey.includes("head") ||
-    normalizedKey.includes("self")
-  ) {
+  if (normRel.includes("self") || normRel.includes("head")) {
     if (holders[0]) return { id: holders[0].id, name: holders[0].name };
   }
 
-  // 4. Default positional mapping (Member 0 -> Holder 0, Member 1 -> Holder 1)
+  // 4. Positional fallback (index 0 -> holder 0, index 1 -> holder 1)
   if (memberIndex !== undefined && holders[memberIndex]) {
     return { id: holders[memberIndex].id, name: holders[memberIndex].name };
   }
 
-  // 5. Fallback
   return holders[0] ? { id: holders[0].id, name: holders[0].name } : { id: 1, name: "Primary Holder" };
 }
 
 /**
- * Matches an INDmoney holding item to an existing MoneyGrid asset holding
+ * Direct 1:1 holding match (Scheme Code or clean name match)
  */
 function findBestHoldingMatch(
   indHolding: INDMoneyHoldingItem,
   holderId: number,
-  category: ReconciliationCategory,
   availableHoldings: AssetHolding[]
 ): AssetHolding | undefined {
   const indName = indHolding.name || indHolding.scheme_name || "";
   const normIndName = normalizeName(indName);
   const indSchemeId = String(indHolding.scheme_id || "").trim();
 
-  // Filter holdings for this holder
   const holderCandidates = availableHoldings.filter((h) => h.holders_id === holderId);
 
-  // 1. Direct Scheme Code or External ID match if present
+  // 1. Scheme code or externalId match
   if (indSchemeId) {
     const codeMatch = holderCandidates.find(
       (h) =>
@@ -137,494 +128,590 @@ function findBestHoldingMatch(
     if (codeMatch) return codeMatch;
   }
 
-  // 2. High confidence normalized name token overlap
-  const indTokens = normIndName.split(" ").filter((t) => t.length > 2);
-  let bestMatch: AssetHolding | undefined;
-  let highestScore = 0;
-
-  for (const cand of holderCandidates) {
-    const candNorm = normalizeName(cand.assetDetail);
-    const candTokens = candNorm.split(" ").filter((t) => t.length > 2);
-
-    // Exact normalized match
-    if (candNorm === normIndName) {
-      return cand;
-    }
-
-    // Token intersection score
-    const matchingTokens = indTokens.filter((t) => candTokens.includes(t));
-    const score = matchingTokens.length;
-
-    // Special case for Corporate Bond / Debt bucket
-    if (
-      category === "mutual_fund" &&
-      normIndName.includes("corporate bond") &&
-      (candNorm.includes("debt bucket") || cand.comments?.toLowerCase().includes("corporate bond"))
-    ) {
-      return cand;
-    }
-
-    // Special case for Bank names
-    if (category === "savings_account") {
-      if (
-        (normIndName.includes("baroda") && candNorm.includes("bob")) ||
-        (normIndName.includes("axis") && candNorm.includes("axis")) ||
-        (normIndName.includes("sbi") && candNorm.includes("sbi")) ||
-        (normIndName.includes("hdfc") && candNorm.includes("hdfc")) ||
-        (normIndName.includes("icici") && candNorm.includes("icici"))
-      ) {
-        return cand;
-      }
-    }
-
-    if (score > highestScore && score >= Math.min(2, indTokens.length)) {
-      highestScore = score;
-      bestMatch = cand;
-    }
+  // 2. Direct name match
+  if (normIndName) {
+    const directMatch = holderCandidates.find((h) => {
+      const hNorm = normalizeName(h.assetDetail);
+      return (
+        hNorm === normIndName ||
+        hNorm.includes(normIndName) ||
+        normIndName.includes(hNorm) ||
+        (normIndName.includes("corporate bond") &&
+          (hNorm.includes("debt bucket") || (h.comments && normalizeName(h.comments).includes("corporate bond"))))
+      );
+    });
+    if (directMatch) return directMatch;
   }
 
-  return bestMatch;
+  // 3. Cross-holder fallback for family assets (Gold / Real Estate) where INDmoney tracks under primary account
+  if (normIndName && (normIndName.includes("gold") || normIndName.includes("bar") || normIndName.includes("jewel"))) {
+    const crossMatch = availableHoldings.find((h) => {
+      const hNorm = normalizeName(h.assetDetail);
+      return (
+        (h.assetClasses_id === 4 || hNorm.includes("gold")) &&
+        (hNorm === normIndName || hNorm.includes(normIndName) || normIndName.includes(hNorm))
+      );
+    });
+    if (crossMatch) return crossMatch;
+  }
+
+  return undefined;
 }
 
 /**
- * Generates a full reconciliation comparison between INDmoney payload and current IndexedDB state
+ * Direct 1:1 liability match by lender name or loan type
+ */
+function findLiabilityMatch(
+  indLender: string,
+  indLoanType: string,
+  availableLiabilities: Liability[],
+  loanTypes: LoanType[]
+): Liability | undefined {
+  const normLender = normalizeName(indLender);
+  const normType = normalizeName(indLoanType);
+
+  // Find loanType by keyword (e.g. "HOUSING LOAN" -> Home Loan, "PROPERTY LOAN" -> Home Loan Insurance)
+  const matchedLoanType = loanTypes.find((lt) => {
+    const ltNorm = normalizeName(lt.name);
+    if (normType.includes("housing") || normType.includes("home")) {
+      return ltNorm.includes("home") && !ltNorm.includes("insurance");
+    }
+    if (normType.includes("property")) {
+      return ltNorm.includes("insurance") || ltNorm.includes("property");
+    }
+    if (normType.includes("car")) {
+      return ltNorm.includes("car");
+    }
+    return ltNorm.includes(normType) || normType.includes(ltNorm);
+  });
+
+  // Priority 1: Match by loanType_id
+  let matchedLiab = matchedLoanType
+    ? availableLiabilities.find((l) => l.loanType_id === matchedLoanType.id)
+    : undefined;
+
+  // Priority 2: Fallback to lender name if not matched by loan type
+  if (!matchedLiab && normLender) {
+    matchedLiab = availableLiabilities.find(
+      (l) => l.lender && (normalizeName(l.lender).includes(normLender) || normLender.includes(normalizeName(l.lender)))
+    );
+  }
+
+  return matchedLiab;
+}
+
+/**
+ * Helper to process an array of holdings for a given category
+ */
+function processHoldingList(
+  holdingsList: INDMoneyHoldingItem[],
+  holderInfo: { id: number; name: string },
+  category: ReconciliationCategory,
+  categoryLabel: string,
+  defaultAssetClassId: number,
+  defaultSubClassId: number,
+  currentHoldings: AssetHolding[],
+  matchedHoldingIds: Set<number>,
+  outItems: ReconciliationItem[],
+  nextSeq: () => number
+) {
+  for (const item of holdingsList) {
+    const val = item.current_value ?? item.market_value ?? 0;
+    const invested = item.invested_amount ?? item.invested;
+    const units = item.quantity ?? item.units;
+    const nav = item.unit_price ?? item.nav;
+    const name = item.name || item.scheme_name || categoryLabel;
+    const extId = item.scheme_id ? String(item.scheme_id) : item.investment_code;
+
+    const matched = findBestHoldingMatch(item, holderInfo.id, currentHoldings);
+    if (matched) {
+      matchedHoldingIds.add(matched.id);
+      const oldVal = matched.existingAllocation || 0;
+      const delta = Number((val - oldVal).toFixed(2));
+      const isChanged = Math.abs(delta) > 0.01;
+      outItems.push({
+        id: `holding-${matched.id}-${nextSeq()}`,
+        holdingId: matched.id,
+        holderId: holderInfo.id,
+        holderName: holderInfo.name,
+        assetName: matched.assetDetail,
+        category,
+        categoryLabel,
+        oldValue: oldVal,
+        newValue: val,
+        delta,
+        oldUnits: matched.units,
+        newUnits: units,
+        schemeCode: item.scheme_id || matched.schemeCode,
+        externalId: extId || matched.externalId,
+        investedAmount: invested !== undefined ? invested : matched.investedAmount,
+        nav: nav !== undefined ? nav : matched.nav,
+        status: isChanged ? "update" : "unchanged",
+        selected: isChanged,
+      });
+    } else {
+      outItems.push({
+        id: `new-${nextSeq()}`,
+        holderId: holderInfo.id,
+        holderName: holderInfo.name,
+        assetName: name,
+        category,
+        categoryLabel: `${categoryLabel} (New)`,
+        oldValue: 0,
+        newValue: val,
+        delta: val,
+        newUnits: units,
+        schemeCode: item.scheme_id,
+        externalId: extId,
+        investedAmount: invested,
+        nav,
+        assetClasses_id: defaultAssetClassId,
+        assetSubClasses_id: defaultSubClassId,
+        status: "new",
+        selected: true,
+      });
+    }
+  }
+}
+
+/**
+ * Helper to process an aggregate asset group (e.g. EPF, NPS, FD without separate holdings list)
+ */
+function processAssetGroup(
+  group: INDMoneyAssetGroup | undefined,
+  holderInfo: { id: number; name: string },
+  category: ReconciliationCategory,
+  categoryLabel: string,
+  matchKeyword: string,
+  defaultAssetClassId: number,
+  defaultSubClassId: number,
+  currentHoldings: AssetHolding[],
+  matchedHoldingIds: Set<number>,
+  outItems: ReconciliationItem[],
+  nextSeq: () => number
+) {
+  if (!group) return;
+
+  const val = group.total_value ?? group.invested ?? 0;
+
+  // 1. Check if user already maintains a consolidated holding for this asset category (e.g. "EPF" or "SBI" FD)
+  const consolidatedMatch = currentHoldings.find(
+    (h) =>
+      h.holders_id === holderInfo.id &&
+      !matchedHoldingIds.has(h.id) &&
+      (normalizeName(h.assetDetail) === normalizeName(categoryLabel) ||
+        normalizeName(h.assetDetail) === matchKeyword ||
+        normalizeName(h.assetDetail).includes(matchKeyword) ||
+        (h.comments && normalizeName(h.comments).includes(matchKeyword)) ||
+        (defaultSubClassId && h.assetSubClasses_id === defaultSubClassId))
+  );
+
+  // If a consolidated holding exists and aggregate value > 0, reconcile directly to it
+  if (consolidatedMatch && val > 0) {
+    matchedHoldingIds.add(consolidatedMatch.id);
+    const delta = Number((val - consolidatedMatch.existingAllocation).toFixed(2));
+    const isChanged = Math.abs(delta) > 0.01;
+    const notes =
+      group.holdings && group.holdings.length > 0
+        ? `Includes ${group.holdings.length} sub-holdings: ${group.holdings
+            .map((h) => h.name || "")
+            .filter(Boolean)
+            .join(", ")}`
+        : undefined;
+
+    outItems.push({
+      id: `agg-${consolidatedMatch.id}-${nextSeq()}`,
+      holdingId: consolidatedMatch.id,
+      holderId: holderInfo.id,
+      holderName: holderInfo.name,
+      assetName: consolidatedMatch.assetDetail,
+      category,
+      categoryLabel,
+      oldValue: consolidatedMatch.existingAllocation,
+      newValue: val,
+      delta,
+      investedAmount:
+        group.invested !== undefined ? group.invested : consolidatedMatch.investedAmount,
+      status: isChanged ? "update" : "unchanged",
+      selected: isChanged,
+      notes,
+    });
+    return;
+  }
+
+  // 2. Otherwise, if individual holdings exist in the group, process them individually
+  if (group.holdings && group.holdings.length > 0) {
+    processHoldingList(
+      group.holdings,
+      holderInfo,
+      category,
+      categoryLabel,
+      defaultAssetClassId,
+      defaultSubClassId,
+      currentHoldings,
+      matchedHoldingIds,
+      outItems,
+      nextSeq
+    );
+    return;
+  }
+
+  // 3. Fallback: No individual holdings and no consolidated match -> create a new aggregate item
+  if (val <= 0) return;
+  outItems.push({
+    id: `agg-new-${nextSeq()}`,
+    holderId: holderInfo.id,
+    holderName: holderInfo.name,
+    assetName: categoryLabel,
+    category,
+    categoryLabel: `${categoryLabel} (New)`,
+    oldValue: 0,
+    newValue: val,
+    delta: val,
+    investedAmount: group.invested,
+    assetClasses_id: defaultAssetClassId,
+    assetSubClasses_id: defaultSubClassId,
+    status: "new",
+    selected: true,
+  });
+}
+
+/**
+ * Generates reconciliation diff between INDmoney payload and current database state
  */
 export function generateReconciliationDiff(
   payload: INDMoneyPayload,
   currentHoldings: AssetHolding[],
   holders: Holder[],
   assetSubClasses: AssetSubClass[] = [],
-  customHolderMap?: Record<string, number>
+  customHolderMap?: Record<string, number>,
+  currentLiabilities: Liability[] = [],
+  loanTypes: LoanType[] = []
 ): ReconciliationResult {
   const items: ReconciliationItem[] = [];
   const matchedHoldingIds = new Set<number>();
   const detectedMembers: DetectedMember[] = [];
   let rowSeq = 0;
+  const nextSeq = () => rowSeq++;
 
   const membersObj = payload.members || {};
 
-  // Find sub-class IDs for stock and MF defaults
+  // Resolve subclass IDs
   const stockSubClass = assetSubClasses.find((sc) => sc.name.toLowerCase().includes("stock"))?.id || 2;
   const equityMfSubClass = assetSubClasses.find((sc) => sc.name.toLowerCase().includes("equity mutual"))?.id || 1;
   const liquidSubClass = assetSubClasses.find((sc) => sc.name.toLowerCase().includes("sa balance"))?.id || 14;
 
-  // Track detected members
   let memberIdx = 0;
-  for (const [memberKey] of Object.entries(membersObj)) {
-    const familyMemberInfo = payload.family?.members?.find((m) => m.key === memberKey);
-    const memberName = familyMemberInfo?.name || memberKey;
-    const resolved = resolveHolderId(
+  for (const [memberKey, memberData] of Object.entries(membersObj)) {
+    const familyMemberMeta = payload.family?.members?.find((m) => m.key === memberKey);
+    const memberName = familyMemberMeta?.name || memberKey;
+    const relation = familyMemberMeta?.relation_to_user;
+
+    const holderInfo = resolveHolderId(
       memberKey,
       memberName,
       holders,
       customHolderMap,
-      familyMemberInfo?.relation_to_user,
+      relation,
       memberIdx++
     );
+
     detectedMembers.push({
       key: memberKey,
       name: memberName,
-      resolvedHolderId: resolved.id,
+      resolvedHolderId: holderInfo.id,
     });
-  }
 
-  let mIdx = 0;
-  for (const [memberKey, memberData] of Object.entries(membersObj)) {
-    const familyMemberInfo = payload.family?.members?.find((m) => m.key === memberKey);
-    const holderInfo = resolveHolderId(
-      memberKey,
-      familyMemberInfo?.name,
-      holders,
-      customHolderMap,
-      familyMemberInfo?.relation_to_user,
-      mIdx++
-    );
-    const assets = memberData.assets || {};
-
-    // 1. Process Mutual Funds
-    if (assets.mutual_fund?.holdings) {
-      for (const mf of assets.mutual_fund.holdings) {
-        const val = mf.current_value ?? mf.market_value ?? 0;
-        const qty = mf.quantity ?? mf.units ?? 0;
-        const investedAmt = mf.invested_amount ?? mf.invested;
-        const unitNav = mf.unit_price ?? mf.nav;
-        const extId = mf.scheme_id ? String(mf.scheme_id).trim() : undefined;
-        const name = mf.name || mf.scheme_name || "Unknown Mutual Fund";
-        const matched = findBestHoldingMatch(mf, holderInfo.id, "mutual_fund", currentHoldings);
-
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const oldUnits = matched.units;
-          const delta = Number((val - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01 || (qty > 0 && Math.abs((oldUnits || 0) - qty) > 0.001);
-
-          items.push({
-            id: `mf-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "mutual_fund",
-            categoryLabel: "Mutual Fund",
-            oldValue: oldVal,
-            newValue: val,
-            delta,
-            oldUnits,
-            newUnits: qty,
-            schemeCode: mf.scheme_id,
-            externalId: extId,
-            investedAmount: investedAmt,
-            nav: unitNav,
-            assetSubClasses_id: matched.assetSubClasses_id,
-            assetClasses_id: matched.assetClasses_id,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        } else {
-          // New MF holding in INDmoney not found in app
-          items.push({
-            id: `mf-new-${rowSeq++}`,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: name,
-            category: "mutual_fund",
-            categoryLabel: "Mutual Fund (New)",
-            oldValue: 0,
-            newValue: val,
-            delta: val,
-            newUnits: qty,
-            schemeCode: mf.scheme_id,
-            externalId: extId,
-            investedAmount: investedAmt,
-            nav: unitNav,
-            assetSubClasses_id: equityMfSubClass,
-            assetClasses_id: 1, // Equity
-            status: "new",
-            selected: true,
-          });
-        }
-      }
-    }
-
-    // 2. Process EPF
-    if (assets.epf) {
-      const epfVal = assets.epf.total_value ?? (assets.epf.holdings || []).reduce((s, h) => s + (h.market_value || h.current_value || 0), 0);
-      const epfInvested = assets.epf.invested;
-      if (epfVal > 0) {
-        const matched = currentHoldings.find(
-          (h) => h.holders_id === holderInfo.id && (h.assetSubClasses_id === 6 || normalizeName(h.assetDetail).includes("epf"))
+    const assets = memberData.assets;
+    if (assets) {
+      if (assets.mutual_fund?.holdings) {
+        processHoldingList(
+          assets.mutual_fund.holdings,
+          holderInfo,
+          "mutual_fund",
+          "Mutual Fund",
+          1,
+          equityMfSubClass,
+          currentHoldings,
+          matchedHoldingIds,
+          items,
+          nextSeq
         );
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((epfVal - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `epf-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "retirement",
-            categoryLabel: "EPF",
-            oldValue: oldVal,
-            newValue: epfVal,
-            delta,
-            investedAmount: epfInvested,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        }
       }
-    }
 
-    // 3. Process NPS
-    if (assets.nps) {
-      const npsVal = assets.nps.total_value ?? assets.nps.holdings?.[0]?.market_value ?? 0;
-      const npsInvested = assets.nps.invested ?? assets.nps.holdings?.[0]?.invested;
-      if (npsVal > 0) {
-        const matched = currentHoldings.find(
-          (h) => h.holders_id === holderInfo.id && normalizeName(h.assetDetail).includes("nps")
+      processAssetGroup(
+        assets.epf,
+        holderInfo,
+        "retirement",
+        "EPF",
+        "epf",
+        2,
+        6,
+        currentHoldings,
+        matchedHoldingIds,
+        items,
+        nextSeq
+      );
+
+      processAssetGroup(
+        assets.nps,
+        holderInfo,
+        "retirement",
+        "NPS",
+        "nps",
+        1,
+        1,
+        currentHoldings,
+        matchedHoldingIds,
+        items,
+        nextSeq
+      );
+
+      processAssetGroup(
+        assets.fixed_deposit,
+        holderInfo,
+        "fixed_deposit",
+        "Fixed Deposit",
+        "sbi",
+        2,
+        9,
+        currentHoldings,
+        matchedHoldingIds,
+        items,
+        nextSeq
+      );
+
+      if (assets.savings_account?.holdings) {
+        processHoldingList(
+          assets.savings_account.holdings,
+          holderInfo,
+          "savings_account",
+          "Savings Account",
+          3,
+          liquidSubClass,
+          currentHoldings,
+          matchedHoldingIds,
+          items,
+          nextSeq
         );
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((npsVal - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `nps-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "retirement",
-            categoryLabel: "NPS",
-            oldValue: oldVal,
-            newValue: npsVal,
-            delta,
-            investedAmount: npsInvested,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        }
       }
-    }
 
-    // 4. Process Fixed Deposit
-    if (assets.fixed_deposit) {
-      const fdVal = assets.fixed_deposit.total_value ?? (assets.fixed_deposit.holdings || []).reduce((s, h) => s + (h.market_value || 0), 0);
-      const fdInvested = assets.fixed_deposit.invested;
-      if (fdVal > 0) {
-        const matched = currentHoldings.find(
-          (h) => h.holders_id === holderInfo.id && h.assetSubClasses_id === 9
+      if (assets.indian_stock?.holdings) {
+        processHoldingList(
+          assets.indian_stock.holdings,
+          holderInfo,
+          "stock",
+          "Indian Stock",
+          1,
+          stockSubClass,
+          currentHoldings,
+          matchedHoldingIds,
+          items,
+          nextSeq
         );
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((fdVal - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `fd-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "fixed_deposit",
-            categoryLabel: "Fixed Deposit",
-            oldValue: oldVal,
-            newValue: fdVal,
-            delta,
-            investedAmount: fdInvested,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        }
       }
-    }
 
-    // 5. Process Gold
-    if (assets.gold && (assets.gold.total_value || assets.gold.invested)) {
-      const goldVal = assets.gold.total_value ?? assets.gold.invested ?? 0;
-      const goldInvested = assets.gold.invested;
-      if (goldVal > 0) {
-        // Find existing gold holdings for this holder, or across family if holder doesn't have gold
-        let goldHoldings = currentHoldings.filter(
-          (h) => h.holders_id === holderInfo.id && (h.assetClasses_id === 4 || h.marketType === "GOLD" || normalizeName(h.assetDetail).includes("gold"))
+      if (assets.us_stock?.holdings) {
+        processHoldingList(
+          assets.us_stock.holdings,
+          holderInfo,
+          "stock",
+          "US Stock",
+          1,
+          stockSubClass,
+          currentHoldings,
+          matchedHoldingIds,
+          items,
+          nextSeq
         );
+      }
 
-        if (goldHoldings.length === 0) {
-          goldHoldings = currentHoldings.filter(
-            (h) => h.assetClasses_id === 4 || h.marketType === "GOLD" || normalizeName(h.assetDetail).includes("gold")
-          );
-        }
+      if (assets.real_estate?.holdings) {
+        processHoldingList(
+          assets.real_estate.holdings,
+          holderInfo,
+          "real_estate",
+          "Real Estate",
+          5,
+          22,
+          currentHoldings,
+          matchedHoldingIds,
+          items,
+          nextSeq
+        );
+      }
 
-        if (goldHoldings.length === 1) {
-          const matched = goldHoldings[0];
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((goldVal - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `gold-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: matched.holders_id,
-            holderName: holders.find((h) => h.id === matched.holders_id)?.name || holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "gold",
-            categoryLabel: "Gold",
-            oldValue: oldVal,
-            newValue: goldVal,
-            delta,
-            investedAmount: goldInvested,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-            notes: matched.grams ? `${matched.grams}g (${matched.goldPurity || "24K"})` : undefined,
-          });
-        } else if (goldHoldings.length > 1) {
-          // Multiple gold holdings: distribute authoritative valuation proportionally
-          const totalExistingGold = goldHoldings.reduce((sum, h) => sum + (h.existingAllocation || 0), 0);
-          let distributedSum = 0;
+      // Gold
+      if (assets.gold) {
+        const hasGoldHoldings = Boolean(
+          assets.gold.holdings && assets.gold.holdings.length > 0
+        );
+        const val = assets.gold.total_value ?? assets.gold.invested ?? 0;
+        if (val > 0 || hasGoldHoldings) {
+          if (assets.gold.holdings && assets.gold.holdings.length > 0) {
+            // INDmoney provided row-level gold holdings -> match individually
+            processHoldingList(
+              assets.gold.holdings,
+              holderInfo,
+              "gold",
+              "Gold",
+              4,
+              16,
+              currentHoldings,
+              matchedHoldingIds,
+              items,
+              nextSeq
+            );
+          } else {
+            // INDmoney only provided an aggregate total without row-level breakdown.
+            // If user has physical gold (grammage tracked or multiple jewellery pieces),
+            // protect them as App-Only to prevent collapsing the entire total onto one item.
+            const userGoldHoldings = currentHoldings.filter(
+              (h) =>
+                h.holders_id === holderInfo.id &&
+                !matchedHoldingIds.has(h.id) &&
+                (h.assetClasses_id === 4 || normalizeName(h.assetDetail).includes("gold"))
+            );
 
-          goldHoldings.forEach((gh, idx) => {
-            matchedHoldingIds.add(gh.id);
-            const oldVal = gh.existingAllocation || 0;
-            let share = 0;
-            if (idx === goldHoldings.length - 1) {
-              share = Number((goldVal - distributedSum).toFixed(2));
-            } else {
-              const ratio = totalExistingGold > 0 ? oldVal / totalExistingGold : 1 / goldHoldings.length;
-              share = Number((goldVal * ratio).toFixed(2));
-              distributedSum += share;
+            // Only reconcile aggregate if user maintains a single generic holding with no physical grammage
+            if (userGoldHoldings.length === 1 && !userGoldHoldings[0].grams) {
+              const matchedGold = userGoldHoldings[0];
+              matchedHoldingIds.add(matchedGold.id);
+              const delta = Number((val - matchedGold.existingAllocation).toFixed(2));
+              const isChanged = Math.abs(delta) > 0.01;
+              items.push({
+                id: `gold-${matchedGold.id}-${nextSeq()}`,
+                holdingId: matchedGold.id,
+                holderId: holderInfo.id,
+                holderName: holderInfo.name,
+                assetName: matchedGold.assetDetail,
+                category: "gold",
+                categoryLabel: "Gold",
+                oldValue: matchedGold.existingAllocation,
+                newValue: val,
+                delta,
+                investedAmount:
+                  assets.gold.invested !== undefined
+                    ? assets.gold.invested
+                    : matchedGold.investedAmount,
+                status: isChanged ? "update" : "unchanged",
+                selected: isChanged,
+              });
             }
+          }
+        }
+      }
+    }
 
-            const delta = Number((share - oldVal).toFixed(2));
+    // Liabilities (Loans & Credit Cards)
+    const liabilities = memberData.liabilities;
+    if (liabilities) {
+      if (liabilities.loans && liabilities.loans.length > 0) {
+        for (const loan of liabilities.loans) {
+          const bal = loan.current_balance ?? 0;
+          const lenderName = loan.lender || "Bank";
+          const loanTypeStr = loan.loan_type || "Loan";
+          const desc = `${lenderName} ${loanTypeStr}`.trim();
+
+          const matchedLiab = findLiabilityMatch(
+            lenderName,
+            loanTypeStr,
+            currentLiabilities,
+            loanTypes
+          );
+
+          if (matchedLiab) {
+            const oldVal = matchedLiab.outstandingBalance ?? matchedLiab.loanAmount ?? 0;
+            const delta = Number((bal - oldVal).toFixed(2));
             const isChanged = Math.abs(delta) > 0.01;
-            const ghHolder = holders.find((h) => h.id === gh.holders_id);
-
             items.push({
-              id: `gold-${gh.id}-${rowSeq++}`,
-              holdingId: gh.id,
-              holderId: gh.holders_id,
-              holderName: ghHolder?.name || holderInfo.name,
-              assetName: gh.assetDetail,
-              category: "gold",
-              categoryLabel: "Gold",
+              id: `liab-${matchedLiab.id}-${nextSeq()}`,
+              liabilityId: matchedLiab.id,
+              holderId: holderInfo.id,
+              holderName: holderInfo.name,
+              assetName: desc,
+              category: "liability",
+              categoryLabel: "Loan Liability",
               oldValue: oldVal,
-              newValue: share,
+              newValue: bal,
               delta,
-              investedAmount: goldInvested ? Number((goldInvested * (oldVal / (totalExistingGold || 1))).toFixed(2)) : undefined,
+              loanType_id: matchedLiab.loanType_id,
+              liabilityType: "loan",
               status: isChanged ? "update" : "unchanged",
               selected: isChanged,
-              notes: gh.grams ? `${gh.grams}g (${gh.goldPurity || "24K"})` : undefined,
+              notes: `Principal: ₹${matchedLiab.loanAmount.toLocaleString("en-IN")}${matchedLiab.lender ? ` · Lender: ${matchedLiab.lender}` : ` · (will set lender: ${lenderName})`}`,
             });
-          });
+          }
         }
       }
-    }
 
-    // 6. Process Savings Accounts
-    if (assets.savings_account?.holdings) {
-      for (const sa of assets.savings_account.holdings) {
-        const val = sa.market_value ?? sa.current_value ?? 0;
-        const name = sa.name || "Savings Account";
-        const matched = findBestHoldingMatch(sa, holderInfo.id, "savings_account", currentHoldings);
-
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((val - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `sa-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "savings_account",
-            categoryLabel: "Bank Account",
-            oldValue: oldVal,
-            newValue: val,
-            delta,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        } else if (val > 0) {
-          // New bank account balance detected in INDmoney - preselect for auto-update
-          items.push({
-            id: `sa-new-${rowSeq++}`,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: name,
-            category: "savings_account",
-            categoryLabel: "Bank Account (New)",
-            oldValue: 0,
-            newValue: val,
-            delta: val,
-            assetSubClasses_id: liquidSubClass,
-            assetClasses_id: 3, // Liquid
-            status: "new",
-            selected: true,
-          });
-        }
-      }
-    }
-
-    // 7. Process Indian Stocks
-    if (assets.indian_stock?.holdings) {
-      for (const st of assets.indian_stock.holdings) {
-        const val = st.market_value ?? st.current_value ?? 0;
-        const qty = st.quantity ?? st.units ?? 0;
-        const investedAmt = st.invested_amount ?? st.invested;
-        const unitPrice = st.unit_price;
-        const extId = st.investment_code || st.scheme_id;
-        const name = st.name || "Stock";
-        const matched = currentHoldings.find(
-          (h) =>
-            h.holders_id === holderInfo.id &&
-            ((extId && (h.externalId === extId || h.schemeCode === extId)) ||
-              normalizeName(h.assetDetail) === normalizeName(name))
+      if (liabilities.credit_cards && liabilities.credit_cards.length > 0) {
+        const creditCardLoanType = loanTypes.find(
+          (lt) =>
+            normalizeName(lt.name).includes("credit card") ||
+            normalizeName(lt.type || "").includes("credit_card") ||
+            normalizeName(lt.type || "").includes("creditcard")
         );
 
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((val - oldVal).toFixed(2));
-          const isChanged = Math.abs(delta) > 0.01;
-          items.push({
-            id: `st-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "stock",
-            categoryLabel: "Stock",
-            oldValue: oldVal,
-            newValue: val,
-            delta,
-            oldUnits: matched.units,
-            newUnits: qty,
-            externalId: extId,
-            investedAmount: investedAmt,
-            nav: unitPrice,
-            status: isChanged ? "update" : "unchanged",
-            selected: isChanged,
-          });
-        } else {
-          items.push({
-            id: `st-new-${rowSeq++}`,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: name,
-            category: "stock",
-            categoryLabel: "Stock (New)",
-            oldValue: 0,
-            newValue: val,
-            delta: val,
-            newUnits: qty,
-            externalId: extId,
-            investedAmount: investedAmt,
-            nav: unitPrice,
-            assetSubClasses_id: stockSubClass,
-            assetClasses_id: 1, // Equity
-            status: "new",
-            selected: true,
-          });
-        }
-      }
-    }
+        for (const cc of liabilities.credit_cards) {
+          const due = cc.total_due ?? 0;
+          if (due > 0) {
+            const ccName = cc.name || "Credit Card";
+            const normCc = normalizeName(ccName);
 
-    // 8. Process Real Estate
-    if (assets.real_estate?.holdings) {
-      for (const re of assets.real_estate.holdings) {
-        const val = re.market_value ?? re.current_value ?? 0;
-        const matched = currentHoldings.find(
-          (h) => h.holders_id === holderInfo.id && (h.assetSubClasses_id === 20 || h.assetSubClasses_id === 22 || normalizeName(h.assetDetail).includes("wadi"))
-        );
-        if (matched) {
-          matchedHoldingIds.add(matched.id);
-          const oldVal = matched.existingAllocation || 0;
-          const delta = Number((val - oldVal).toFixed(2));
-          items.push({
-            id: `re-${matched.id}-${rowSeq++}`,
-            holdingId: matched.id,
-            holderId: holderInfo.id,
-            holderName: holderInfo.name,
-            assetName: matched.assetDetail,
-            category: "real_estate",
-            categoryLabel: "Real Estate",
-            oldValue: oldVal,
-            newValue: val,
-            delta,
-            status: Math.abs(delta) > 0.01 ? "update" : "unchanged",
-            selected: Math.abs(delta) > 0.01,
-          });
+            const matchedLiab = currentLiabilities.find(
+              (l) =>
+                (creditCardLoanType && l.loanType_id === creditCardLoanType.id) ||
+                (l.lender && (normCc.includes(normalizeName(l.lender)) || normalizeName(l.lender).includes(normCc)))
+            );
+
+            if (matchedLiab) {
+              const oldVal = matchedLiab.outstandingBalance ?? matchedLiab.loanAmount ?? 0;
+              const delta = Number((due - oldVal).toFixed(2));
+              items.push({
+                id: `cc-${matchedLiab.id}-${nextSeq()}`,
+                liabilityId: matchedLiab.id,
+                holderId: holderInfo.id,
+                holderName: holderInfo.name,
+                assetName: ccName,
+                category: "liability",
+                categoryLabel: "Credit Card",
+                oldValue: oldVal,
+                newValue: due,
+                delta,
+                dueDate: cc.due_date,
+                loanType_id: matchedLiab.loanType_id,
+                liabilityType: "credit_card",
+                status: Math.abs(delta) > 0.01 ? "update" : "unchanged",
+                selected: Math.abs(delta) > 0.01,
+                notes: `Due Date: ${cc.due_date || "N/A"}${matchedLiab.lender ? ` · Lender: ${matchedLiab.lender}` : ""}`,
+              });
+            } else if (creditCardLoanType) {
+              items.push({
+                id: `cc-new-${nextSeq()}`,
+                holderId: holderInfo.id,
+                holderName: holderInfo.name,
+                assetName: ccName,
+                category: "liability",
+                categoryLabel: "Credit Card (New)",
+                oldValue: 0,
+                newValue: due,
+                delta: due,
+                dueDate: cc.due_date,
+                loanType_id: creditCardLoanType.id,
+                liabilityType: "credit_card",
+                status: "new",
+                selected: true,
+                notes: `Due Date: ${cc.due_date || "N/A"}`,
+              });
+            }
+          }
         }
       }
     }
   }
 
-  // 9. Capture App-Only Holdings (Protected & Untouched)
+  // App-Only Holdings (Protected & Untouched)
   for (const holding of currentHoldings) {
     if (!matchedHoldingIds.has(holding.id)) {
       const holder = holders.find((h) => h.id === holding.holders_id);
@@ -633,7 +720,7 @@ export function generateReconciliationDiff(
       if (holding.assetSubClasses_id === 12) catLabel = "SSY Account";
 
       items.push({
-        id: `app-only-${holding.id}-${rowSeq++}`,
+        id: `app-only-${holding.id}-${nextSeq()}`,
         holdingId: holding.id,
         holderId: holding.holders_id,
         holderName: holder?.name || "Family",
@@ -681,12 +768,14 @@ export function generateReconciliationDiff(
 export async function applyINDMoneyReconciliation(
   items: ReconciliationItem[],
   currentHoldings: AssetHolding[],
-  customHolderMap?: Record<string, number>
-): Promise<{ updatedCount: number; addedCount: number }> {
+  customHolderMap?: Record<string, number>,
+  currentLiabilities: Liability[] = []
+): Promise<{ updatedCount: number; addedCount: number; updatedLiabilitiesCount: number }> {
   let updatedCount = 0;
   let addedCount = 0;
+  let updatedLiabilitiesCount = 0;
 
-  await db.transaction("rw", [db.assetsHoldings, db.holders], async () => {
+  await db.transaction("rw", [db.assetsHoldings, db.holders, db.liabilities], async () => {
     // 1. If customHolderMap was provided, save aliases to db.holders so they are remembered permanently
     if (customHolderMap) {
       for (const [memberKey, holderId] of Object.entries(customHolderMap)) {
@@ -705,6 +794,40 @@ export async function applyINDMoneyReconciliation(
     for (const item of items) {
       if (!item.selected) continue;
 
+      if (item.category === "liability") {
+        if (item.status === "update" && item.liabilityId) {
+          const existing = currentLiabilities.find((l) => l.id === item.liabilityId);
+          if (existing) {
+            const updatePayload: Partial<Liability> = {
+              outstandingBalance: item.newValue,
+              dueDate: item.dueDate,
+              lastSyncedAt: nowIso,
+            };
+            if (!existing.lender && item.assetName) {
+              const bankWord = item.assetName.split(" ")[0];
+              if (bankWord && bankWord !== "Bank") updatePayload.lender = bankWord;
+            }
+            await db.liabilities.update(item.liabilityId, updatePayload);
+            updatedLiabilitiesCount++;
+          }
+        } else if (item.status === "new" && item.liabilityType === "credit_card" && item.loanType_id) {
+          const today = new Date();
+          const startDateStr = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
+          await db.liabilities.add({
+            loanType_id: item.loanType_id,
+            loanAmount: item.newValue,
+            loanStartDate: startDateStr,
+            totalMonths: 1, // Revolving credit card monthly balance
+            outstandingBalance: item.newValue,
+            dueDate: item.dueDate,
+            lastSyncedAt: nowIso,
+            lender: item.assetName,
+          } as Liability);
+          addedCount++;
+        }
+        continue;
+      }
+
       if (item.status === "update" && item.holdingId) {
         const existing = currentHoldings.find((h) => h.id === item.holdingId);
         if (existing) {
@@ -712,6 +835,11 @@ export async function applyINDMoneyReconciliation(
             ...existing,
             existingAllocation: item.newValue,
             units: item.newUnits !== undefined ? item.newUnits : existing.units,
+            grams:
+              (existing.marketType === "GOLD" || existing.grams !== undefined) &&
+              item.newUnits !== undefined
+                ? item.newUnits
+                : existing.grams,
             schemeCode: item.schemeCode || existing.schemeCode,
             externalId:
               item.externalId ||
@@ -756,5 +884,5 @@ export async function applyINDMoneyReconciliation(
     }
   });
 
-  return { updatedCount, addedCount };
+  return { updatedCount, addedCount, updatedLiabilitiesCount };
 }

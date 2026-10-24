@@ -23,63 +23,6 @@ export const calculateEMI = (
 };
 
 /**
- * Calculates the remaining balance of a loan at a specific date.
- * 
- * @param principal - The principal loan amount
- * @param annualInterestRate - The annual interest rate in percentage
- * @param tenureMonths - The total tenure of the loan in months
- * @param startDateStr - The start date of the loan (DD-MM-YYYY format)
- * @param targetDate - The date for which to calculate the balance (defaults to today)
- * @returns The remaining principal balance
- */
-export const calculateRemainingBalance = (
-  principal: number,
-  annualInterestRate: number,
-  tenureMonths: number,
-  startDateStr: string,
-  targetDate: Date = new Date()
-): number => {
-  if (!startDateStr || principal <= 0) return 0;
-
-  const [day, month, year] = startDateStr.split("-").map(Number);
-  const startDate = new Date(year, month - 1, day);
-
-  if (targetDate < startDate) return principal;
-
-  // Calculate number of EMIs paid
-  // We assume EMI is paid at the end of each month relative to start date
-  // For simplicity in daily calculation, we can approximate or use exact months passed
-  const monthsPassed =
-    (targetDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (targetDate.getMonth() - startDate.getMonth());
-  
-  // Adjust for day of month? 
-  // Standard practice: if today is 20th and loan started on 1st, we are in the middle of a month.
-  // Usually balance reduces only after EMI payment.
-  // Let's assume full months passed for EMI payments.
-  
-  const emisPaid = Math.max(0, Math.min(tenureMonths, monthsPassed));
-  
-  if (emisPaid === 0) return principal;
-  if (emisPaid >= tenureMonths) return 0;
-
-  const monthlyRate = annualInterestRate / 12 / 100;
-  const emi = calculateEMI(principal, annualInterestRate, tenureMonths);
-
-  // Balance = P * (1+r)^n - (EMI/r) * ((1+r)^n - 1)
-  // where n is number of payments made
-  
-  if (annualInterestRate <= 0) {
-      return Math.max(0, principal - (emi * emisPaid));
-  }
-
-  const factor = Math.pow(1 + monthlyRate, emisPaid);
-  const balance = principal * factor - (emi / monthlyRate) * (factor - 1);
-
-  return Math.max(0, Math.round(balance));
-};
-
-/**
  * Calculates the future value of a loan after N months from a starting balance.
  * Useful for projections.
  * 

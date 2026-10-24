@@ -174,7 +174,7 @@ function DataManagementTab() {
   };
 
   const handleRestore = async (file: DriveFile) => {
-    if (!window.confirm("WARNING: resultoring will REPLACE all current data. Continue?")) return;
+    if (!window.confirm("WARNING: Restoring will REPLACE all current data. Continue?")) return;
 
     setRestoring(true);
     try {

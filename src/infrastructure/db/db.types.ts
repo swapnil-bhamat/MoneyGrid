@@ -109,6 +109,10 @@ export interface Liability extends BaseRecord {
   loanAmount: number;
   loanStartDate: string; // Format: DD-MM-YYYY
   totalMonths: number;
+  lender?: string;
+  outstandingBalance?: number;
+  dueDate?: string;
+  lastSyncedAt?: string;
 }
 
 export interface AssetProjection extends BaseRecord {

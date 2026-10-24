@@ -2,11 +2,34 @@ import { logError, logInfo } from "@/services/logger";
 import { db, sanitizeData } from "@/infrastructure/db/db";
 import type { InitializationData } from "@/infrastructure/db/db";
 import { findFile, readFile, uploadJsonFile } from "./googleDrive";
+import { historyService } from "./historyService";
 
 const DATA_FILE_NAME = "data.json";
 let syncInProgress = false;
 // Track the last successful sync timestamp
 let syncTimeout: NodeJS.Timeout | null = null;
+
+export const DB_TABLE_REGISTRY = [
+  { jsonKey: "configs", table: "configs" },
+  { jsonKey: "assetPurpose", table: "assetPurposes" },
+  { jsonKey: "loanType", table: "loanTypes" },
+  { jsonKey: "holders", table: "holders" },
+  { jsonKey: "sipTypes", table: "sipTypes" },
+  { jsonKey: "buckets", table: "buckets" },
+  { jsonKey: "assetClasses", table: "assetClasses" },
+  { jsonKey: "assetSubClasses", table: "assetSubClasses" },
+  { jsonKey: "goals", table: "goals" },
+  { jsonKey: "accounts", table: "accounts" },
+  { jsonKey: "income", table: "income" },
+  { jsonKey: "cashFlow", table: "cashFlow" },
+  { jsonKey: "assetsHoldings", table: "assetsHoldings" },
+  { jsonKey: "liabilities", table: "liabilities" },
+  { jsonKey: "assetsProjection", table: "assetsProjection" },
+  { jsonKey: "liabilitiesProjection", table: "liabilitiesProjection" },
+  { jsonKey: "upcomingExpenses", table: "upcomingExpenses" },
+  { jsonKey: "insuranceTypes", table: "insuranceTypes" },
+  { jsonKey: "insurances", table: "insurances" },
+] as const;
 
 export async function initializeFromDrive(
   shouldRestore = false
@@ -88,82 +111,49 @@ export async function initializeFromDrive(
   }
 }
 
-async function importDataToIndexedDB(data: InitializationData): Promise<void> {
+export async function importDataToIndexedDB(
+  data: InitializationData,
+  clearExisting = true
+): Promise<void> {
   try {
-    logInfo("Starting data import to IndexedDB with data:", data);
+    logInfo("Starting data import to IndexedDB...");
     
     // Sanitize data before importing
     const sanitizedData = sanitizeData(data);
+    historyService.pauseTracking();
     
     await db.transaction("rw", db.tables, async () => {
-      // Clear existing data
-      logInfo("Clearing existing data from tables...");
-      await Promise.all(db.tables.map((table) => table.clear()));
-      logInfo("Tables cleared successfully");
+      if (clearExisting) {
+        logInfo("Clearing existing data from tables...");
+        await Promise.all(db.tables.map((table) => table.clear()));
+        logInfo("Tables cleared successfully");
+      }
 
       // Import new data
-      logInfo("Beginning data import...");
-      if (sanitizedData.configs?.length) await db.configs.bulkAdd(sanitizedData.configs);
-      if (sanitizedData.assetPurpose?.length)
-        await db.assetPurposes.bulkAdd(sanitizedData.assetPurpose);
-      if (sanitizedData.loanType?.length) await db.loanTypes.bulkAdd(sanitizedData.loanType);
-      if (sanitizedData.holders?.length) await db.holders.bulkAdd(sanitizedData.holders);
-      if (sanitizedData.sipTypes?.length) await db.sipTypes.bulkAdd(sanitizedData.sipTypes);
-      if (sanitizedData.buckets?.length) await db.buckets.bulkAdd(sanitizedData.buckets);
-      if (sanitizedData.assetClasses?.length)
-        await db.assetClasses.bulkAdd(sanitizedData.assetClasses);
-      if (sanitizedData.assetSubClasses?.length)
-        await db.assetSubClasses.bulkAdd(sanitizedData.assetSubClasses);
-      if (sanitizedData.goals?.length) await db.goals.bulkAdd(sanitizedData.goals);
-      if (sanitizedData.accounts?.length) await db.accounts.bulkAdd(sanitizedData.accounts);
-      if (sanitizedData.income?.length) await db.income.bulkAdd(sanitizedData.income);
-      if (sanitizedData.cashFlow?.length) await db.cashFlow.bulkAdd(sanitizedData.cashFlow);
-      if (sanitizedData.assetsHoldings?.length)
-        await db.assetsHoldings.bulkAdd(sanitizedData.assetsHoldings);
-      if (sanitizedData.liabilities?.length)
-        await db.liabilities.bulkAdd(sanitizedData.liabilities);
-      if (sanitizedData.assetsProjection?.length)
-        await db.assetsProjection.bulkAdd(sanitizedData.assetsProjection);
-      if (sanitizedData.liabilitiesProjection?.length)
-        await db.liabilitiesProjection.bulkAdd(sanitizedData.liabilitiesProjection);
-      if (sanitizedData.upcomingExpenses?.length)
-        await db.upcomingExpenses.bulkAdd(sanitizedData.upcomingExpenses);
-      if (sanitizedData.insuranceTypes?.length)
-        await db.insuranceTypes.bulkAdd(sanitizedData.insuranceTypes);
-      if (sanitizedData.insurances?.length)
-        await db.insurances.bulkAdd(sanitizedData.insurances);
+      logInfo("Beginning data import via table registry...");
+      for (const { jsonKey, table } of DB_TABLE_REGISTRY) {
+        const rows = (sanitizedData as any)[jsonKey];
+        if (rows && rows.length > 0) {
+          await (db as any)[table].bulkAdd(rows);
+        }
+      }
     });
     logInfo("Successfully imported data to IndexedDB");
   } catch (error) {
     logError("Failed to import data to IndexedDB:", { error });
     throw error;
+  } finally {
+    historyService.resumeTracking();
   }
 }
 
 export async function exportDataFromIndexedDB(): Promise<InitializationData> {
   try {
-    return {
-      version: db.verno,
-      configs: await db.configs.toArray(),
-      assetPurpose: await db.assetPurposes.toArray(),
-      loanType: await db.loanTypes.toArray(),
-      holders: await db.holders.toArray(),
-      sipTypes: await db.sipTypes.toArray(),
-      buckets: await db.buckets.toArray(),
-      assetClasses: await db.assetClasses.toArray(),
-      assetSubClasses: await db.assetSubClasses.toArray(),
-      goals: await db.goals.toArray(),
-      accounts: await db.accounts.toArray(),
-      income: await db.income.toArray(),
-      cashFlow: await db.cashFlow.toArray(),
-      assetsHoldings: await db.assetsHoldings.toArray(),
-      liabilities: await db.liabilities.toArray(),
-      assetsProjection: await db.assetsProjection.toArray(),
-      liabilitiesProjection: await db.liabilitiesProjection.toArray(),
-      upcomingExpenses: await db.upcomingExpenses.toArray(),
-      insuranceTypes: await db.insuranceTypes.toArray(),
-      insurances: await db.insurances.toArray(),
-    };
+    const data: any = { version: db.verno };
+    for (const { jsonKey, table } of DB_TABLE_REGISTRY) {
+      data[jsonKey] = await (db as any)[table].toArray();
+    }
+    return data as InitializationData;
   } catch (error) {
     logError("Failed to export data from IndexedDB:", { error });
     throw error;
