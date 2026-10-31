@@ -171,8 +171,8 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                       {!isMobile && <Legend />}
@@ -207,8 +207,8 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                       {!isMobile && <Legend />}
@@ -245,23 +245,24 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined, name) => {
+                        formatter={(value, name) => {
                           const item = projectedAssetGrowth.find(
                             (i) => i.label === name
                           );
+                          const numValue = Number(value);
                           if (
                             item &&
                             value !== undefined &&
                             item.currentValue > 0
                           ) {
                             const growth = (
-                              ((value - item.currentValue) /
+                              ((numValue - item.currentValue) /
                                 item.currentValue) *
                               100
                             ).toFixed(1);
-                            return `${toLocalCurrency(value)} (+${growth}%)`;
+                            return `${toLocalCurrency(value as number | undefined)} (+${growth}%)`;
                           }
-                          return toLocalCurrency(value);
+                          return toLocalCurrency(value as number | undefined);
                         }}
                       />
                       {!isMobile && <Legend />}
@@ -298,8 +299,8 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                       {!isMobile && <Legend />}
@@ -336,8 +337,8 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                       {!isMobile && <Legend />}
@@ -374,8 +375,8 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                       {!isMobile && <Legend />}

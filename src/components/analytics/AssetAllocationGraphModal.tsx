@@ -64,8 +64,8 @@ export default function AssetAllocationGraphModal({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                     </PieChart>
@@ -99,8 +99,8 @@ export default function AssetAllocationGraphModal({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          toLocalCurrency(value)
+                        formatter={(value) =>
+                          toLocalCurrency(value as number | undefined)
                         }
                       />
                     </PieChart>

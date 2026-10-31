@@ -240,6 +240,9 @@ export default function UpcomingExpensesPage() {
           label: `${monthName} ${year}`,
         };
       }}
+      filterGroup={(items) =>
+        items.filter((item) => !item.isCompleted).reduce((sum, item) => sum + item.amount, 0) > 0
+      }
       groupRightLabel={(items) => toLocalCurrency(items.filter(item => !item.isCompleted).reduce((sum, item) => sum + item.amount, 0))}
       columns={[
         {

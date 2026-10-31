@@ -212,7 +212,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = () => {
       // 2. Send to AI
       const response = await sendMessageToAI(history, userMessage, optimizedProfile, apiKey, modelName, permissions);
       
-      let aiResponseText = response.text;
+      const aiResponseText = response.text;
       const aiResponseImages = response.images;
 
 

@@ -7,7 +7,7 @@ import { historyService } from "./historyService";
 const DATA_FILE_NAME = "data.json";
 let syncInProgress = false;
 // Track the last successful sync timestamp
-let syncTimeout: NodeJS.Timeout | null = null;
+let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const DB_TABLE_REGISTRY = [
   { jsonKey: "configs", table: "configs" },

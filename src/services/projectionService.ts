@@ -309,7 +309,7 @@ export const generateChartData = (
 
     if (liabilityProjectionData) {
       projectedLiabilities = liabilityProjectionData.reduce((sum, lp) => {
-        let balance = 0;
+        let balance: number;
 
         if (lp.isFutureLoan && lp.startDate) {
           // Logic for future loan
