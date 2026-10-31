@@ -67,7 +67,7 @@ export default function QueryBuilderPage() {
             results = results.filter(filterFn);
           } catch (error) {
             logError("Where clause error:", { error });
-            throw new Error("Invalid where clause");
+            throw new Error("Invalid where clause", { cause: error });
           }
         }
 
@@ -102,7 +102,7 @@ export default function QueryBuilderPage() {
             results = results.filter(filterFn);
           } catch (error) {
             logError("Where clause error:", { error });
-            throw new Error("Invalid where clause");
+            throw new Error("Invalid where clause", { cause: error });
           }
         }
 

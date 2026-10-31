@@ -31,6 +31,7 @@ interface BasePageProps<T extends BaseRecord> {
   groupBy?: (item: T) => { key: string; label: string };
   groupSort?: (a: string, b: string) => number;
   groupRightLabel?: (items: T[]) => string;
+  filterGroup?: (items: T[]) => boolean;
 }
 
 type AppError = {
@@ -69,6 +70,7 @@ export default function BasePage<T extends BaseRecord>({
   groupBy,
   groupSort,
   groupRightLabel,
+  filterGroup,
 }: BasePageProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | undefined>();
   const [showForm, setShowForm] = useState(false);
@@ -184,12 +186,18 @@ export default function BasePage<T extends BaseRecord>({
 
     const sortedKeys = Object.keys(groups).sort(groupSort || ((a, b) => a.localeCompare(b)));
     
-    return sortedKeys.map(key => ({
+    const result = sortedKeys.map(key => ({
       key,
       label: groups[key].label,
       items: groups[key].items
     }));
-  }, [filteredData, groupBy, groupSort]);
+
+    if (filterGroup) {
+      return result.filter(group => filterGroup(group.items));
+    }
+
+    return result;
+  }, [filteredData, groupBy, groupSort, filterGroup]);
 
   const handleDownload = () => {
     const headers = columns.map((col) => col.headerName).join(" | ");
@@ -281,7 +289,7 @@ export default function BasePage<T extends BaseRecord>({
       {/* Content Area */}
       <div className="flex-grow-1 overflow-auto">
         {/* Empty State */}
-        {filteredData.length === 0 && (
+        {(filteredData.length === 0 || (Boolean(groupBy) && Boolean(groupedData) && groupedData!.length === 0)) && (
           <div className="text-center py-5 px-3">
             <div className="text-muted mb-3">
               <BsSearch size={48} />
@@ -301,7 +309,7 @@ export default function BasePage<T extends BaseRecord>({
           </div>
         )}
 
-        {groupBy && groupedData ? (
+        {groupBy && groupedData && groupedData.length > 0 ? (
           <Accordion alwaysOpen defaultActiveKey={groupedData.map(g => g.key)}>
             {groupedData.map((group) => (
               <Accordion.Item key={group.key} eventKey={group.key} className="mb-4 border-0 bg-transparent">
@@ -330,7 +338,7 @@ export default function BasePage<T extends BaseRecord>({
               </Accordion.Item>
             ))}
           </Accordion>
-        ) : (
+        ) : !groupBy && filteredData.length > 0 ? (
           <>
             {/* Mobile Compact Card View */}
             <MobileCardView
@@ -350,7 +358,7 @@ export default function BasePage<T extends BaseRecord>({
               getRowClassName={getRowClassName}
             />
           </>
-        )}
+        ) : null}
       </div>
 
       {/* Delete Confirmation Modal */}
