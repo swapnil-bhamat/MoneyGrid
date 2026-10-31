@@ -4,7 +4,6 @@ import { db } from "@/infrastructure/db/db";
 import { AssetProjection, LiabilityProjection } from "@/infrastructure/db/db.types";
 import {
   calculateEMI,
-  calculateRemainingBalance,
 } from "@/utils/financialUtils";
 import { toLocalCurrency } from "@/utils/numberUtils";
 import {
@@ -273,15 +272,11 @@ export default function AssetAllocationProjectionPage() {
             : null;
         const loanType = liability ? getLoanType(liability.loanType_id) : null;
 
-        const currentBalance =
-          liability && loanType
-            ? calculateRemainingBalance(
-                liability.loanAmount,
-                loanType.interestRate,
-                liability.totalMonths,
-                liability.loanStartDate
-              )
-            : 0;
+        const currentBalance = liability
+          ? (liability.outstandingBalance !== undefined
+              ? liability.outstandingBalance
+              : liability.loanAmount)
+          : 0;
 
         const currentEmi =
           liability && loanType
@@ -326,12 +321,7 @@ export default function AssetAllocationProjectionPage() {
           const [day, month, year] = lp.startDate.split("-").map(Number);
           const start = new Date(year, month - 1, day);
           if (start <= new Date()) {
-            currentBalance = calculateRemainingBalance(
-              loanAmount,
-              loanType?.interestRate || 0,
-              lp.totalMonths || 0,
-              lp.startDate
-            );
+            currentBalance = loanAmount;
           }
         }
 

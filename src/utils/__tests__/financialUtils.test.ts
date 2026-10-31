@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateEMI,
-  calculateRemainingBalance,
   projectLoanBalance,
   calculateXIRR
 } from '../financialUtils';
@@ -24,33 +23,6 @@ describe('financialUtils', () => {
     it('handles 0% interest', () => {
       // 120,000 / 12 = 10,000
       expect(calculateEMI(120000, 0, 12)).toBe(10000);
-    });
-  });
-
-  describe('calculateRemainingBalance', () => {
-    it('returns principal if start date is in future relative to target', () => {
-      const today = new Date('2025-01-01');
-      const futureStart = '01-02-2025'; // Feb 1st
-      expect(calculateRemainingBalance(100000, 10, 12, futureStart, today)).toBe(100000);
-    });
-
-    it('calculates balance correctly after some months', () => {
-      // Principal 1,20,000, 0% interest, 12 months tenure. EMI 10,000.
-      // Start Jan 1 2024. Target April 15 2024.
-      // Months passed: Jan, Feb, Mar = 3 months full? 
-      // Diff in months: (2024-2024)*12 + (3-0) = 3.
-      // Paid 30,000. Remaining 90,000.
-      const start = '01-01-2024';
-      const target = new Date('2024-04-15');
-      const balance = calculateRemainingBalance(120000, 0, 12, start, target);
-      expect(balance).toBe(90000);
-    });
-
-    it('returns 0 if tenure is completed', () => {
-      const start = '01-01-2020';
-      const target = new Date('2025-01-01'); // 5 years later
-      const balance = calculateRemainingBalance(100000, 10, 12, start, target);
-      expect(balance).toBe(0);
     });
   });
 

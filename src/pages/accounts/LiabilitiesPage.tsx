@@ -17,7 +17,7 @@ import { Form } from "react-bootstrap";
 import { toLocalCurrency } from "@/utils/numberUtils";
 import AmountInput from "@/components/common/AmountInput";
 import FormSelect from "@/components/common/FormSelect";
-import { calculateEMI, calculateRemainingBalance } from "@/utils/financialUtils";
+import { calculateEMI } from "@/utils/financialUtils";
 import { getDynamicBgClass } from "@/utils/colorUtils";
 
 import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/dateUtils";
@@ -25,6 +25,7 @@ import { convertToDateInputFormat, convertFromDateInputFormat } from "@/utils/da
 function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
   const [loanType_id, setLoanTypeId] = useState(item?.loanType_id ?? 0);
   const [loanAmount, setLoanAmount] = useState(item?.loanAmount ?? 0);
+  const [lender, setLender] = useState(item?.lender ?? "");
   const [loanStartDate, setLoanStartDate] = useState(
     item?.loanStartDate ?? ""
   );
@@ -35,11 +36,13 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
     if (item) {
       setLoanTypeId(item.loanType_id ?? 0);
       setLoanAmount(item.loanAmount ?? 0);
+      setLender(item.lender ?? "");
       setLoanStartDate(item.loanStartDate ?? "");
       setTotalMonths(item.totalMonths ?? 0);
     } else {
       setLoanTypeId(0);
       setLoanAmount(0);
+      setLender("");
       setLoanStartDate("");
       setTotalMonths(0);
     }
@@ -53,6 +56,7 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
       ...(item ?? {}),
       loanType_id,
       loanAmount,
+      lender: lender.trim() || undefined,
       loanStartDate,
       totalMonths,
     });
@@ -77,6 +81,17 @@ function LiabilityForm({ item, onSave, onHide, show }: LiabilityFormProps) {
         }))}
         defaultText="Select Loan Type"
       />
+      <Form.Group className="mb-3" controlId="formLiabilityLender">
+        <Form.Label>Lender / Bank (e.g. HDFC Bank, ICICI Bank)</Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="e.g. HDFC Bank Ltd"
+          value={lender}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setLender(e.target.value)
+          }
+        />
+      </Form.Group>
       <Form.Group className="mb-3" controlId="formLiabilityLoanAmount">
         <Form.Label>{t.liabilities.loanAmount}</Form.Label>
         <AmountInput
@@ -152,6 +167,11 @@ export default function LiabilitiesPage() {
       groupRightLabel={(items) => toLocalCurrency(items.reduce((sum, item) => sum + item.loanAmount, 0))}
       columns={[
         {
+          field: "lender",
+          headerName: "Lender / Bank",
+          renderCell: (item) => item.lender || "-",
+        },
+        {
           field: "loanAmount",
           headerName: t.liabilities.loanAmount,
           renderCell: (item) => toLocalCurrency(item.loanAmount),
@@ -160,14 +180,22 @@ export default function LiabilitiesPage() {
           field: "balance" as keyof Liability, // Virtual field
           headerName: t.liabilities.outstandingBalance,
           renderCell: (item) => {
-            const rate = getLoanInterestRate(item.loanType_id);
-            const balance = calculateRemainingBalance(
-              item.loanAmount,
-              rate,
-              item.totalMonths,
-              item.loanStartDate
+            const balance = item.outstandingBalance !== undefined ? item.outstandingBalance : item.loanAmount;
+            return (
+              <div>
+                <div className="fw-semibold">{toLocalCurrency(balance)}</div>
+                {item.dueDate && (
+                  <small className="text-danger d-block" style={{ fontSize: "0.75rem" }}>
+                    Due: {item.dueDate}
+                  </small>
+                )}
+                {item.lastSyncedAt && (
+                  <small className="text-muted d-block" style={{ fontSize: "0.75rem" }}>
+                    Synced: {item.lastSyncedAt.split("T")[0]}
+                  </small>
+                )}
+              </div>
             );
-            return toLocalCurrency(balance);
           },
         },
         {
