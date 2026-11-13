@@ -12,6 +12,7 @@ interface DesktopTableViewProps<T extends BaseRecord> {
   getRowClassName?: (item: T) => string;
   renderFooter?: () => React.ReactNode;
   showOnMobile?: boolean;
+  className?: string;
 }
 
 export const DesktopTableView = <T extends BaseRecord>({
@@ -23,12 +24,14 @@ export const DesktopTableView = <T extends BaseRecord>({
   getRowClassName,
   renderFooter,
   showOnMobile = false,
+  className,
 }: DesktopTableViewProps<T>) => {
   const showActions = onEdit || onDelete || renderActions;
   const currency = getActiveCurrency();
+  const containerClass = className ?? `${showOnMobile ? "" : "d-none d-lg-block"} p-3`;
 
   return (
-    <div className={`${showOnMobile ? "" : "d-none d-lg-block"} p-3`}>
+    <div className={containerClass}>
       <div className="table-responsive">
         <Table striped bordered hover className="mb-0">
           <thead className="table-dark">
