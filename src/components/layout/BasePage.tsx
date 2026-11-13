@@ -83,6 +83,41 @@ export default function BasePage<T extends BaseRecord>({
   const [error, setError] = useState<AppError | null>(null);
   const isValid = formData && (!validateForm || validateForm(formData));
 
+  const [viewMode, setViewMode] = useState<"table" | "cards">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved =
+          localStorage.getItem("preferred_desktop_view_mode") ||
+          localStorage.getItem("preferred_view_mode");
+        if (saved === "table" || saved === "cards") return saved;
+      } catch {
+        // ignore
+      }
+    }
+    return "table";
+  });
+
+  const handleViewModeToggle = () => {
+    const nextMode = viewMode === "table" ? "cards" : "table";
+    setViewMode(nextMode);
+    try {
+      localStorage.setItem("preferred_desktop_view_mode", nextMode);
+      localStorage.setItem("preferred_view_mode", nextMode);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleViewModeChange = (mode: "table" | "cards") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("preferred_desktop_view_mode", mode);
+      localStorage.setItem("preferred_view_mode", mode);
+    } catch {
+      // ignore
+    }
+  };
+
   const handleAdd = () => {
     setSelectedItem(undefined);
     setShowForm(true);
@@ -250,7 +285,7 @@ export default function BasePage<T extends BaseRecord>({
         className="bg-body border-bottom sticky-top shadow-sm"
         style={{ zIndex: 1020 }}
       >
-        <div className="p-3">
+        <div className="p-2 p-sm-3">
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -258,6 +293,9 @@ export default function BasePage<T extends BaseRecord>({
             onDownload={handleDownload}
             extraActions={extraActions}
             title={title}
+            viewMode={viewMode}
+            onViewModeToggle={handleViewModeToggle}
+            onViewModeChange={handleViewModeChange}
           />
         </div>
       </div>
@@ -320,43 +358,82 @@ export default function BasePage<T extends BaseRecord>({
                   </div>
                 </Accordion.Header>
                 <Accordion.Body className="p-0 pt-2">
-                  <MobileCardView
-                    data={group.items}
-                    columns={columns}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteClick}
-                    getCardClassName={getRowClassName}
-                  />
-                  <DesktopTableView
-                    data={group.items}
-                    columns={columns}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteClick}
-                    getRowClassName={getRowClassName}
-                  />
+                  {/* Mobile: Always Card View */}
+                  <div className="d-md-none">
+                    <MobileCardView
+                      data={group.items}
+                      columns={columns}
+                      onEdit={handleEdit}
+                      onDelete={handleDeleteClick}
+                      getCardClassName={getRowClassName}
+                      className="p-3"
+                    />
+                  </div>
+
+                  {/* Desktop: Toggleable Card Grid or Table View */}
+                  <div className="d-none d-md-block">
+                    {viewMode === "cards" ? (
+                      <MobileCardView
+                        data={group.items}
+                        columns={columns}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        getCardClassName={getRowClassName}
+                        className="p-3"
+                      />
+                    ) : (
+                      <DesktopTableView
+                        data={group.items}
+                        columns={columns}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        getRowClassName={getRowClassName}
+                        className="p-3"
+                        showOnMobile={true}
+                      />
+                    )}
+                  </div>
                 </Accordion.Body>
               </Accordion.Item>
             ))}
           </Accordion>
         ) : !groupBy && filteredData.length > 0 ? (
           <>
-            {/* Mobile Compact Card View */}
-            <MobileCardView
-              data={filteredData}
-              columns={columns}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-              getCardClassName={getRowClassName}
-            />
+            {/* Mobile: Always Card View */}
+            <div className="d-md-none">
+              <MobileCardView
+                data={filteredData}
+                columns={columns}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+                getCardClassName={getRowClassName}
+                className="p-3"
+              />
+            </div>
 
-            {/* Desktop Table View */}
-            <DesktopTableView
-              data={filteredData}
-              columns={columns}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-              getRowClassName={getRowClassName}
-            />
+            {/* Desktop: Toggleable Card Grid or Table View */}
+            <div className="d-none d-md-block">
+              {viewMode === "cards" ? (
+                <MobileCardView
+                  data={filteredData}
+                  columns={columns}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                  getCardClassName={getRowClassName}
+                  className="p-3"
+                />
+              ) : (
+                <DesktopTableView
+                  data={filteredData}
+                  columns={columns}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                  getRowClassName={getRowClassName}
+                  className="p-3"
+                  showOnMobile={true}
+                />
+              )}
+            </div>
           </>
         ) : null}
       </div>
